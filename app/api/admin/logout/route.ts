@@ -1,8 +1,7 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { ADMIN_COOKIE } from '@/lib/admin';
+import { ADMIN_COOKIE, redirectTo } from '@/lib/admin';
 
-export async function POST(req: NextRequest) {
-  const res = NextResponse.redirect(new URL('/admin', req.url), 303);
+export async function POST() {
+  const res = redirectTo('/admin');
   res.cookies.delete(ADMIN_COOKIE);
   return res;
 }
