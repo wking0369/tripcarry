@@ -109,12 +109,48 @@ export const CATEGORIES: Record<Category, { label: string; status: RuleStatus; n
 export const CATEGORY_LIST = Object.entries(CATEGORIES).map(([key, v]) => ({ key: key as Category, ...v }));
 
 // 물품 이름에 들어 있으면 자동으로 막는 단어들. 카테고리를 잘못 골라도 걸러진다.
-const BLOCK_WORDS: { words: string[]; reason: string }[] = [
-  { words: ['육포', '소시지', '하몽', '살라미', '햄', '만두', '베이컨', 'jerky', 'sausage', 'jamon', 'salami'], reason: '육가공품으로 보여요' },
-  { words: ['생과일', '씨앗', '묘목', '망고스틴', '두리안'], reason: '검역 대상(생과일·씨앗)으로 보여요' },
-  { words: ['짝퉁', '레플리카', '이미테이션', 'replica', '가품', '미러급'], reason: '모조품은 모든 나라에서 반입 금지예요' },
-  { words: ['총', '도검', '칼날', '가스총', '전기충격기', '마약', '대마', 'cbd'], reason: '무기·마약류는 반입 금지예요' },
+const BLOCK_WORDS: { words: string[]; reason: string; en: string }[] = [
+  { words: ['육포', '소시지', '하몽', '살라미', '햄', '만두', '베이컨', 'jerky', 'sausage', 'jamon', 'jamón', 'salami', 'prosciutto', 'bacon', 'dumpling'], reason: '육가공품으로 보여요', en: 'looks like a meat product' },
+  { words: ['생과일', '씨앗', '묘목', '망고스틴', '두리안'], reason: '검역 대상(생과일·씨앗)으로 보여요', en: 'looks like fresh produce or seeds (quarantine)' },
+  { words: ['짝퉁', '레플리카', '이미테이션', 'replica', '가품', '미러급', 'counterfeit', 'fake ', 'knockoff', 'dupe bag'], reason: '모조품은 모든 나라에서 반입 금지예요', en: 'counterfeits are banned everywhere' },
+  { words: ['총', '도검', '칼날', '가스총', '전기충격기', '마약', '대마', 'cbd', 'taser', 'pepper spray', 'cannabis', 'marijuana', 'gun '], reason: '무기·마약류는 반입 금지예요', en: 'weapons and drugs are banned' },
 ];
+
+export type Lang = 'ko' | 'en';
+
+// 랜딩 페이지(영어)용 문구. 한국어 원문은 위 표에 있다.
+const COUNTRY_EN: Record<CountryCode, { name: string; allowanceNote: string; extras: string[] }> = {
+  KR: { name: 'South Korea', allowanceNote: '$800 per traveler', extras: ['2 bottles of alcohol (2L total, ≤$400) exempt separately', '200 cigarettes exempt separately', '100ml perfume exempt separately', '30% duty reduction for voluntary declaration (up to ₩200,000)'] },
+  US: { name: 'United States', allowanceNote: 'Residents $800 · Visitors $100 in gifts', extras: ['1L alcohol exempt (21+)', '200 cigarettes', 'Flat 3% on the next $1,000 over the limit'] },
+  JP: { name: 'Japan', allowanceNote: '¥200,000 total overseas value', extras: ['3 bottles of alcohol (760ml) exempt separately', '200 cigarettes', '2 oz perfume', 'Items under ¥10,000 each are excluded from the total'] },
+  FR: { name: 'France (EU)', allowanceNote: '€430 by air/sea (€300 by land)', extras: ['1L spirits or 4L wine exempt separately', '200 cigarettes', '€150 for under-15s'] },
+  DE: { name: 'Germany (EU)', allowanceNote: '€430 by air/sea (€300 by land)', extras: ['1L spirits or 4L wine exempt separately', '200 cigarettes', '€175 for under-15s'] },
+  CN: { name: 'China', allowanceNote: 'Residents ¥5,000 · Non-residents ¥2,000', extras: ['1.5L alcohol exempt', '400 cigarettes (residents)', 'Rates of 13% / 20% / 50% by item'] },
+  VN: { name: 'Vietnam', allowanceNote: '₫10,000,000', extras: ['1.5L of 20%+ alcohol exempt', '200 cigarettes'] },
+};
+
+const CATEGORY_EN: Record<Category, { label: string; note: string }> = {
+  general: { label: 'Clothing, goods & merch', note: '' },
+  electronics: { label: 'Electronics', note: 'Customs may inspect pricey electronics. Keep the receipt.' },
+  cosmetics: { label: 'Cosmetics & perfume', note: 'Liquids over 100ml must go in checked baggage.' },
+  luxury: { label: 'Luxury goods', note: 'High-value items are likely to need declaring. Keep receipts and photos.' },
+  food: { label: 'Packaged snacks & food', note: 'Sealed, processed food only. Anything with meat is banned.' },
+  supplement: { label: 'Supplements & medicine', note: 'Personal-use quantities only (e.g. 6 bottles in Korea). Some ingredients are banned.' },
+  alcohol: { label: 'Alcohol', note: 'Separately exempt only up to each country’s bottle limit.' },
+  tobacco: { label: 'Tobacco', note: 'Exempt up to one carton (200 cigarettes). Carrying for others is discouraged.' },
+  battery: { label: 'Power banks & lithium', note: 'Carry-on only, up to 160Wh (over 100Wh needs airline approval).' },
+  meat: { label: 'Meat & meat products', note: 'Jerky, sausage, ham, dumplings etc. are banned in most countries.' },
+  fresh: { label: 'Fresh fruit, veg & seeds', note: 'Quarantine items — banned in most countries.' },
+};
+
+export function countryText(code: CountryCode, lang: Lang) {
+  const c = COUNTRIES[code];
+  return lang === 'en' ? COUNTRY_EN[code] : { name: c.name, allowanceNote: c.allowanceNote, extras: c.extras };
+}
+
+export function categoryText(key: Category, lang: Lang) {
+  return lang === 'en' ? CATEGORY_EN[key] : { label: CATEGORIES[key].label, note: CATEGORIES[key].note };
+}
 
 export function toUSD(amount: number, code: CountryCode) {
   return amount / COUNTRIES[code].perUSD;
@@ -149,10 +185,10 @@ export interface GuardResult {
   messages: { level: 'ok' | 'warn' | 'block' | 'info'; text: string }[];
 }
 
-export function detectBlockWord(name: string): string | null {
-  const lower = name.toLowerCase();
+export function detectBlockWord(name: string, lang: Lang = 'ko'): string | null {
+  const lower = name.toLowerCase() + ' ';
   for (const b of BLOCK_WORDS) {
-    if (b.words.some((w) => lower.includes(w.toLowerCase()))) return b.reason;
+    if (b.words.some((w) => lower.includes(w.toLowerCase()))) return lang === 'en' ? b.en : b.reason;
   }
   return null;
 }
@@ -166,9 +202,12 @@ export function evaluate(opts: {
   resident?: boolean;
   items: GuardItem[];
   existingUSD?: number;
+  lang?: Lang;
 }): GuardResult {
-  const { to, resident = true, items, existingUSD = 0 } = opts;
+  const { to, resident = true, items, existingUSD = 0, lang = 'ko' } = opts;
+  const en = lang === 'en';
   const country = COUNTRIES[to];
+  const ct = countryText(to, lang);
   const allowance = allowanceUSD(to, resident);
   const messages: GuardResult['messages'] = [];
   let blocked = false;
@@ -176,11 +215,12 @@ export function evaluate(opts: {
 
   for (const it of items) {
     const rule = CATEGORIES[it.category];
-    const word = it.name ? detectBlockWord(it.name) : null;
+    const rt = categoryText(it.category, lang);
+    const word = it.name ? detectBlockWord(it.name, lang) : null;
     const value = Math.max(0, it.unitUSD) * Math.max(1, it.qty);
     if (rule.status === 'block') {
       blocked = true;
-      messages.push({ level: 'block', text: `${rule.label}: ${rule.note}` });
+      messages.push({ level: 'block', text: `${rt.label}: ${rt.note}` });
       continue;
     }
     if (word) {
@@ -190,14 +230,27 @@ export function evaluate(opts: {
     }
     if (it.category === 'alcohol') {
       if (it.qty <= country.alcoholBottles) {
-        messages.push({ level: 'info', text: `주류 ${it.qty}병은 ${country.name} 별도 면세 범위(${country.alcoholBottles}병) 안이에요.` });
+        messages.push({
+          level: 'info',
+          text: en
+            ? `${it.qty} bottle(s) of alcohol are within ${ct.name}’s separate allowance (${country.alcoholBottles}).`
+            : `주류 ${it.qty}병은 ${ct.name} 별도 면세 범위(${country.alcoholBottles}병) 안이에요.`,
+        });
         continue;
       }
-      messages.push({ level: 'warn', text: `주류는 ${country.name}에서 ${country.alcoholBottles}병까지만 별도 면세예요. 초과분은 과세돼요.` });
+      messages.push({
+        level: 'warn',
+        text: en
+          ? `${ct.name} only exempts ${country.alcoholBottles} bottle(s) of alcohol separately. The rest is taxed.`
+          : `주류는 ${ct.name}에서 ${country.alcoholBottles}병까지만 별도 면세예요. 초과분은 과세돼요.`,
+      });
     } else if (it.category === 'supplement' && it.qty > 6) {
-      messages.push({ level: 'warn', text: '건강기능식품은 보통 6병(자가 사용량)까지만 허용돼요. 수량을 줄여 주세요.' });
-    } else if (rule.status === 'limit' || rule.note) {
-      messages.push({ level: rule.status === 'limit' ? 'warn' : 'info', text: `${rule.label}: ${rule.note}` });
+      messages.push({
+        level: 'warn',
+        text: en ? 'Supplements are usually limited to about 6 bottles (personal use). Please reduce the quantity.' : '건강기능식품은 보통 6병(자가 사용량)까지만 허용돼요. 수량을 줄여 주세요.',
+      });
+    } else if (rule.status === 'limit' || rt.note) {
+      messages.push({ level: rule.status === 'limit' ? 'warn' : 'info', text: `${rt.label}: ${rt.note}` });
     }
     counted += value;
   }
@@ -216,10 +269,17 @@ export function evaluate(opts: {
     if (excess > 0) {
       messages.unshift({
         level: 'warn',
-        text: `${country.name} 면세 한도(${country.allowanceNote})를 $${fmt(excess)} 넘어요. 예상 세금 약 $${fmt(estDuty)}를 미리 결제하고, 여행자가 입국 때 자진 신고해야 해요.`,
+        text: en
+          ? `$${fmt(excess)} over ${ct.name}’s duty-free limit (${ct.allowanceNote}). Estimated duty ~$${fmt(estDuty)} is prepaid and the traveler declares it on arrival.`
+          : `${ct.name} 면세 한도(${ct.allowanceNote})를 $${fmt(excess)} 넘어요. 예상 세금 약 $${fmt(estDuty)}를 미리 결제하고, 여행자가 입국 때 자진 신고해야 해요.`,
       });
     } else {
-      messages.unshift({ level: 'ok', text: `${country.name} 면세 한도 안이에요. 남은 한도 $${fmt(allowance - total)}.` });
+      messages.unshift({
+        level: 'ok',
+        text: en
+          ? `Within ${ct.name}’s duty-free limit. $${fmt(allowance - total)} left.`
+          : `${ct.name} 면세 한도 안이에요. 남은 한도 $${fmt(allowance - total)}.`,
+      });
     }
   }
 
