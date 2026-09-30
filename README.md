@@ -28,8 +28,22 @@ npm run dev      # http://localhost:3000
 npm run build && npm start
 ```
 
+## 수요 조사 (레딧)
+
+- 랜딩(`/`)은 영어가 기본이고 오른쪽 위 버튼으로 한국어로 바꿀 수 있어요.
+- 모든 버튼은 **사전 등록 팝업**을 열어요. 이메일은 필수, 역할·경로·물건·보상금은 선택이에요.
+- 방문·버튼 클릭·등록을 서버에 기록해요. 링크에 `?src=이름`을 붙이면 유입 경로별로 따로 세요.
+  예: `https://사이트주소/?src=r_solotravel`
+- 결과는 `/admin`(비밀번호 필요)에서 보고, CSV로 받을 수 있어요.
+- 기록은 `DATA_DIR` 폴더의 `events.jsonl`, `signups.jsonl`에 쌓여요.
+- 게시판 후보와 게시글 초안: [`docs/reddit-plan.md`](docs/reddit-plan.md)
+
 ## Railway 배포
 
 1. Railway → **New Project → Deploy from GitHub repo** → 이 저장소 선택
-2. 환경 변수는 필요 없어요. 빌드(`npm run build`)와 실행(`npm start`)은 자동으로 잡혀요.
-3. 서비스 **Settings → Networking → Generate Domain**으로 주소를 만들면 끝이에요.
+2. 서비스 **Variables**에 추가
+   - `ADMIN_PASSWORD` — 결과 화면(`/admin`) 비밀번호
+   - `DATA_DIR` = `/data`
+3. 서비스를 우클릭(또는 ⌘K) → **Attach Volume** → Mount path `/data`
+   (Volume이 없으면 재배포할 때마다 모은 이메일이 사라져요)
+4. **Settings → Networking → Generate Domain**으로 주소를 만들어요.
