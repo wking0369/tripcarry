@@ -20,6 +20,7 @@ const EMPTY_FORM = {
   neededBy: '',
   note: '',
   agree: false,
+  acceptDuty: false,
 };
 
 export default function RequestsClient() {
@@ -35,7 +36,8 @@ export default function RequestsClient() {
   const bd = breakdown({ unitUSD, qty, rewardUSD, dutyUSD: 0 });
   const missing = !f.buyer.trim() || !f.title.trim() || unitUSD <= 0 || rewardUSD <= 0;
   const sameCountry = f.from === f.to;
-  const canSubmit = !missing && !sameCountry && guard.zone !== 'block' && f.agree;
+  const needsDuty = guard.zone !== 'block' && guard.excessUSD > 0;
+  const canSubmit = !missing && !sameCountry && guard.zone !== 'block' && f.agree && (!needsDuty || f.acceptDuty);
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
 
@@ -54,6 +56,7 @@ export default function RequestsClient() {
       to: f.to,
       toCity: f.toCity.trim(),
       neededBy: f.neededBy,
+      dutyUSD: needsDuty ? guard.estDutyUSD : 0,
       note: f.note.trim(),
     });
     setDone(f.title.trim());
@@ -187,7 +190,7 @@ export default function RequestsClient() {
               <div><span>여행자 보상금</span><span>{usd(rewardUSD)}</span></div>
               <div><span>서비스 수수료</span><span>{usd(bd.buyerFee)}</span></div>
               {guard.estDutyUSD > 0 && (
-                <div className="muted-row"><span>예상 세금 (매칭 때 확정)</span><span>{usd(guard.estDutyUSD)}</span></div>
+                <div className="muted-row"><span>예상 세금 (구매자 부담)</span><span>{usd(guard.estDutyUSD)}</span></div>
               )}
               <div className="total">
                 <span>매칭 후 결제할 금액</span>
@@ -196,13 +199,25 @@ export default function RequestsClient() {
             </div>
           )}
 
+          {needsDuty && (
+            <label className="check duty-accept">
+              <input type="checkbox" checked={f.acceptDuty} onChange={(e) => set('acceptDuty', e.target.checked)} />
+              <span className="small">
+                면세 한도를 넘어요. 예상 세금 <b>{usd(guard.estDutyUSD)}</b>를 제가 부담하는 데 동의해요. (동의해야 다음 단계로 넘어가요)
+              </span>
+            </label>
+          )}
+
           <label className="check">
             <input type="checkbox" checked={f.agree} onChange={(e) => set('agree', e.target.checked)} />
-            <span className="small">정품·합법 물품이며, 여행자가 현지 매장에서 영수증을 받고 직접 구매하는 방식에 동의해요.</span>
+            <span className="small">
+              정품·합법 물품이며, <Link href="/rules" target="_blank">구매 전 확인 사항</Link>과{' '}
+              <Link href="/terms" target="_blank">이용약관</Link>에 동의해요.
+            </span>
           </label>
 
           <button className="btn btn-primary" type="submit" disabled={!canSubmit}>
-            {guard.zone === 'block' ? '반입 금지 품목이라 등록할 수 없어요' : '요청 올리기'}
+            {guard.zone === 'block' ? '반입 금지 품목이라 등록할 수 없어요' : needsDuty && !f.acceptDuty ? '예상 세금에 동의해야 해요' : '요청 올리기'}
           </button>
         </form>
       </div>

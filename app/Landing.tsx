@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { AutoRules } from './RulesVisual';
 import { useSite } from './Site';
 
 function flag(code: string) {
@@ -29,7 +31,7 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function Landing() {
-  const { t, openWaitlist } = useSite();
+  const { t, lang, openWaitlist } = useSite();
   const max = Math.max(...t.compare.map((c) => c.value));
 
   return (
@@ -122,6 +124,11 @@ export default function Landing() {
             <li key={x}>{x}</li>
           ))}
         </ul>
+      </section>
+
+      <section className="section">
+        <AutoRules lang={lang} />
+        <Link href="/rules" className="lp-rules-link">{t.rulesCta}</Link>
       </section>
 
       <section className="pitch final-cta">

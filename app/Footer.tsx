@@ -12,6 +12,8 @@ export default function Footer() {
       <p>{t.footer1}</p>
       <p>{t.footer2}</p>
       <p className="footer-links">
+        <Link href="/rules">{t.rules}</Link>
+        <Link href="/help">{t.help}</Link>
         <Link href="/terms">{t.terms}</Link>
         <Link href="/privacy">{t.privacy}</Link>
         <Link href="/duty-free">{t.calc}</Link>

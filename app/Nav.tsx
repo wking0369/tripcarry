@@ -26,6 +26,8 @@ export default function Nav() {
           <span>TripCarry</span>
         </Link>
         <span style={{ flex: 1 }} />
+        <Link className="tab hide-sm" href="/rules">{t.rules}</Link>
+        <Link className="tab" href="/help">{t.help}</Link>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLang(lang === 'en' ? 'ko' : 'en')}>
           {t.nav.other}
         </button>

@@ -3,9 +3,10 @@
 // P2P 직구 매칭 데모의 데이터 저장소. 서버 DB 없이 브라우저(localStorage)에만 저장한다.
 // 실제 서비스로 넘어갈 때 이 파일의 함수들을 API 호출로 바꾸면 화면은 그대로 쓸 수 있다.
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import type { Category, CountryCode } from './customs';
 import { breakdown } from './fees';
+import { RULES } from './rules';
 
 export { FEES, breakdown } from './fees';
 
@@ -29,9 +30,21 @@ export interface Req {
   status: Status;
   tripId?: string;
   dutyUSD: number;
-  receipt?: string;
-  photo?: string;
+  /** 사진 증빙 3단계: 구매(물품+영수증) · 포장(전달 직전 상태) · 수령(현장 사진) */
+  proofs: { purchase?: string; pack?: string; handover?: string };
+  /** 구매자가 현장에서 보여 주는 수령 코드 (QR 대신) */
+  code: string;
+  /** 자동 처리 기한 (ISO) */
+  receiptDue?: string;
+  confirmDue?: string;
+  chat: ChatMsg[];
   history: { at: string; text: string }[];
+}
+
+export interface ChatMsg {
+  at: string;
+  from: 'buyer' | 'traveler' | 'system';
+  text: string;
 }
 
 export interface Trip {
@@ -48,11 +61,16 @@ export interface Trip {
   resident: boolean;
   verified: boolean;
   note: string;
+  rating: number;
+  reviews: number;
+  suspendedUntil?: string;
 }
 
 export interface State {
   requests: Req[];
   trips: Trip[];
+  /** 미리보기용 시간 빨리 감기 (ms) */
+  offsetMs: number;
 }
 
 export const STATUS_LABEL: Record<Status, string> = {
@@ -67,8 +85,8 @@ export const STATUS_LABEL: Record<Status, string> = {
 
 export const FLOW: Status[] = ['open', 'matched', 'escrow', 'purchased', 'delivered', 'settled'];
 
-const KEY = 'tripcarry-demo-v1';
-const EMPTY: State = { requests: [], trips: [] };
+const KEY = 'tripcarry-demo-v2';
+const EMPTY: State = { requests: [], trips: [], offsetMs: 0 };
 let state: State | null = null;
 const listeners = new Set<() => void>();
 
@@ -78,8 +96,32 @@ function day(offset: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function nowMs() {
+  return Date.now() + (state?.offsetMs ?? 0);
+}
+
 function now() {
-  return new Date().toISOString();
+  return new Date(nowMs()).toISOString();
+}
+
+function hoursFromNow(h: number) {
+  return new Date(nowMs() + h * 3600_000).toISOString();
+}
+
+/** 미리보기 화면에서 쓰는 현재 시각 (빨리 감기 포함) */
+export function demoNow(s: State) {
+  return Date.now() + s.offsetMs;
+}
+
+function code6() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+/** 평점이 낮거나 정지된 여행자는 매칭할 수 없다 */
+export function tripBlocked(t: Trip, at: number): string | null {
+  if (t.suspendedUntil && new Date(t.suspendedUntil).getTime() > at) return '노쇼로 계정 일시 정지 중';
+  if (t.reviews >= RULES.minReviews && t.rating <= RULES.minRating) return `평점 ${t.rating.toFixed(1)} — 매칭 제한`;
+  return null;
 }
 
 export function uid(prefix: string) {
@@ -89,14 +131,18 @@ export function uid(prefix: string) {
 function seed(): State {
   const t = now();
   const trips: Trip[] = [
-    { id: 't_minseo', createdAt: t, traveler: '민서', from: 'US', fromCity: 'LA', to: 'KR', toCity: '서울', departDate: day(5), arriveDate: day(6), spaceKg: 6, resident: true, verified: true, note: '캐리어 하나 반 정도 비어요. 강남·성수 직접 전달 가능.' },
-    { id: 't_junho', createdAt: t, traveler: '준호', from: 'FR', fromCity: '파리', to: 'KR', toCity: '서울', departDate: day(9), arriveDate: day(10), spaceKg: 4, resident: true, verified: true, note: '마레 지구 근처 숙소. 향수·화장품 환영.' },
-    { id: 't_emily', createdAt: t, traveler: 'Emily', from: 'KR', fromCity: '서울', to: 'US', toCity: 'New York', departDate: day(12), arriveDate: day(12), spaceKg: 5, resident: true, verified: false, note: 'K-beauty 올리브영 쇼핑 가능해요.' },
-    { id: 't_haru', createdAt: t, traveler: '하루', from: 'JP', fromCity: '도쿄', to: 'KR', toCity: '부산', departDate: day(3), arriveDate: day(3), spaceKg: 3, resident: true, verified: true, note: '시부야·이케부쿠로 들를 예정.' },
+    { id: 't_minseo', createdAt: t, traveler: '민서', from: 'US', fromCity: 'LA', to: 'KR', toCity: '서울', departDate: day(5), arriveDate: day(6), spaceKg: 6, resident: true, verified: true, note: '캐리어 하나 반 정도 비어요. 강남·성수 직접 전달 가능.', rating: 4.9, reviews: 23 },
+    { id: 't_junho', createdAt: t, traveler: '준호', from: 'FR', fromCity: '파리', to: 'KR', toCity: '서울', departDate: day(9), arriveDate: day(10), spaceKg: 4, resident: true, verified: true, note: '마레 지구 근처 숙소. 향수·화장품 환영.', rating: 4.7, reviews: 8 },
+    { id: 't_emily', createdAt: t, traveler: 'Emily', from: 'KR', fromCity: '서울', to: 'US', toCity: 'New York', departDate: day(12), arriveDate: day(12), spaceKg: 5, resident: true, verified: false, note: 'K-beauty 올리브영 쇼핑 가능해요.', rating: 0, reviews: 0 },
+    { id: 't_haru', createdAt: t, traveler: '하루', from: 'JP', fromCity: '도쿄', to: 'KR', toCity: '부산', departDate: day(3), arriveDate: day(3), spaceKg: 3, resident: true, verified: true, note: '시부야·이케부쿠로 들를 예정.', rating: 4.8, reviews: 12 },
+    { id: 't_tae', createdAt: t, traveler: '태호', from: 'FR', fromCity: '니스', to: 'KR', toCity: '서울', departDate: day(7), arriveDate: day(8), spaceKg: 5, resident: true, verified: true, note: '남부 프랑스 약국 화장품 가능.', rating: 3.6, reviews: 9 },
   ];
-  const mk = (r: Omit<Req, 'createdAt' | 'history' | 'dutyUSD'> & Partial<Req>): Req => ({
+  const mk = (r: Omit<Req, 'createdAt' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat'> & Partial<Req>): Req => ({
     createdAt: t,
     dutyUSD: 0,
+    proofs: {},
+    code: code6(),
+    chat: [],
     history: [{ at: t, text: '구매 요청 등록' }],
     ...r,
   });
@@ -108,10 +154,16 @@ function seed(): State {
     mk({ id: 'r_cosrx', buyer: 'Sarah', title: 'COSRX 스네일 96 뮤신 에센스', link: 'https://www.oliveyoung.co.kr', category: 'cosmetics', qty: 3, unitUSD: 18, rewardUSD: 15, from: 'KR', to: 'US', toCity: 'New York', neededBy: day(30), note: 'Olive Young price please!', status: 'open' }),
     mk({
       id: 'r_nike', buyer: '현우', title: 'Nike 한정판 스니커즈 (US 9)', link: 'https://www.nike.com', category: 'general', qty: 1, unitUSD: 180, rewardUSD: 35, from: 'US', to: 'KR', toCity: '서울', neededBy: day(15), note: '', status: 'escrow', tripId: 't_minseo',
+      receiptDue: new Date(Date.now() + 40 * 3600_000).toISOString(),
+      chat: [
+        { at: t, from: 'system', text: '매칭됐어요. 전달 장소·시간은 이 채팅에서 직접 정해 주세요.' },
+        { at: t, from: 'buyer', text: '안녕하세요! 성수역 근처에서 받을 수 있을까요?' },
+        { at: t, from: 'traveler', text: '네 좋아요. 도착 다음 날 저녁 7시 어떠세요?' },
+      ],
       history: [{ at: t, text: '구매 요청 등록' }, { at: t, text: '민서 님이 수락' }, { at: t, text: '구매자 결제 완료 — 플랫폼이 대금 보관 중' }],
     }),
   ];
-  return { requests, trips };
+  return { requests, trips, offsetMs: 0 };
 }
 
 function load(): State {
@@ -119,7 +171,7 @@ function load(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as State;
-      if (Array.isArray(parsed.requests) && Array.isArray(parsed.trips)) return parsed;
+      if (Array.isArray(parsed.requests) && Array.isArray(parsed.trips)) return { ...parsed, offsetMs: parsed.offsetMs ?? 0 };
     }
   } catch {
     /* 저장소를 못 쓰면 샘플로 시작 */
@@ -160,6 +212,10 @@ function subscribe(l: () => void) {
 
 export function useP2P(): State & { ready: boolean } {
   const s = useSyncExternalStore(subscribe, get, () => EMPTY);
+  // 화면을 열 때마다 기한이 지난 거래를 자동 처리한다.
+  useEffect(() => {
+    actions.tick();
+  }, []);
   return { ...s, ready: s !== EMPTY };
 }
 
@@ -172,16 +228,67 @@ function log(r: Req, text: string): Req['history'] {
   return [...r.history, { at: now(), text }];
 }
 
+function sys(r: Req, text: string): ChatMsg[] {
+  return [...r.chat, { at: now(), from: 'system', text }];
+}
+
+/**
+ * 자동 처리 규칙. 화면을 열 때와 시간을 빨리 감을 때 실행된다.
+ * 실제 서비스에서는 서버의 예약 작업(cron)이 같은 일을 한다.
+ */
+function runAuto(s: State): State {
+  const at = Date.now() + s.offsetMs;
+  const stamp = new Date(at).toISOString();
+  let trips = s.trips;
+  let changed = false;
+  const requests = s.requests.map((r) => {
+    const hist = (text: string) => [...r.history, { at: stamp, text }];
+    if (r.status === 'open' && r.neededBy) {
+      const cutoff = new Date(r.neededBy + 'T00:00:00').getTime() - RULES.matchCutoffHours * 3600_000;
+      if (at >= cutoff) {
+        changed = true;
+        return { ...r, status: 'cancelled' as Status, history: hist(`[자동] 희망일 ${RULES.matchCutoffHours}시간 전까지 매칭이 안 돼서 취소 (결제 전이라 청구 없음)`) };
+      }
+    }
+    if (r.status === 'escrow' && r.receiptDue && at >= new Date(r.receiptDue).getTime() && !r.proofs.purchase) {
+      changed = true;
+      const until = new Date(at + RULES.noShowSuspendDays * 86400_000).toISOString();
+      trips = trips.map((t) => (t.id === r.tripId ? { ...t, suspendedUntil: until } : t));
+      return {
+        ...r,
+        status: 'cancelled' as Status,
+        history: hist(`[자동] ${RULES.receiptDueHours}시간 안에 구매 인증이 없어 취소 · 구매자 전액 환불 · 여행자 보증금 몰수 및 ${RULES.noShowSuspendDays}일 정지`),
+      };
+    }
+    if (r.status === 'delivered' && r.confirmDue && at >= new Date(r.confirmDue).getTime()) {
+      changed = true;
+      return { ...r, status: 'settled' as Status, history: hist(`[자동] ${RULES.confirmDueHours}시간 동안 수령 확인이 없어 자동 수령 처리 · 여행자 정산`) };
+    }
+    return r;
+  });
+  return changed ? { ...s, requests, trips } : s;
+}
+
 export const actions = {
-  addRequest(r: Omit<Req, 'id' | 'createdAt' | 'status' | 'history' | 'dutyUSD'>) {
+  addRequest(r: Omit<Req, 'id' | 'createdAt' | 'status' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat'> & { dutyUSD?: number }) {
     const s = get();
-    const req: Req = { ...r, id: uid('r'), createdAt: now(), status: 'open', dutyUSD: 0, history: [{ at: now(), text: '구매 요청 등록' }] };
+    const req: Req = {
+      dutyUSD: 0,
+      ...r,
+      id: uid('r'),
+      createdAt: now(),
+      status: 'open',
+      proofs: {},
+      code: code6(),
+      chat: [],
+      history: [{ at: now(), text: r.dutyUSD ? `구매 요청 등록 · 예상 세금 $${r.dutyUSD.toFixed(0)} 부담 동의` : '구매 요청 등록' }],
+    };
     set({ ...s, requests: [req, ...s.requests] });
     return req.id;
   },
-  addTrip(t: Omit<Trip, 'id' | 'createdAt'>) {
+  addTrip(t: Omit<Trip, 'id' | 'createdAt' | 'rating' | 'reviews'>) {
     const s = get();
-    const trip: Trip = { ...t, id: uid('t'), createdAt: now() };
+    const trip: Trip = { ...t, id: uid('t'), createdAt: now(), rating: 0, reviews: 0 };
     set({ ...s, trips: [trip, ...s.trips] });
     return trip.id;
   },
@@ -190,32 +297,84 @@ export const actions = {
       ...r,
       status: 'matched',
       tripId: trip.id,
-      dutyUSD,
+      dutyUSD: Math.max(r.dutyUSD, dutyUSD),
+      chat: sys(r, '매칭됐어요. 전달 장소·시간은 이 채팅에서 직접 정해 주세요.'),
       history: log(r, `${trip.traveler} 님이 수락${dutyUSD > 0 ? ` (관세 선결제 $${dutyUSD.toFixed(0)} 포함)` : ''}`),
     }));
   },
   pay(reqId: string) {
-    updateReq(reqId, (r) => ({ ...r, status: 'escrow', history: log(r, '구매자 결제 완료 — 플랫폼이 대금 보관 중') }));
+    updateReq(reqId, (r) => ({
+      ...r,
+      status: 'escrow',
+      receiptDue: hoursFromNow(RULES.receiptDueHours),
+      chat: sys(r, `결제 완료. 여행자는 ${RULES.receiptDueHours}시간 안에 [물품+영수증] 사진을 올려야 해요.`),
+      history: log(r, '구매 전 확인 사항 동의 · 결제 완료 — 플랫폼이 대금 보관 중'),
+    }));
   },
-  purchased(reqId: string, receipt: string) {
-    updateReq(reqId, (r) => ({ ...r, status: 'purchased', receipt, history: log(r, `여행자 현지 매장 구매 · 영수증 첨부 (${receipt})`) }));
+  proofPurchase(reqId: string, file: string) {
+    updateReq(reqId, (r) => ({
+      ...r,
+      status: 'purchased',
+      proofs: { ...r.proofs, purchase: file },
+      chat: sys(r, '구매 인증 사진이 올라왔어요.'),
+      history: log(r, `① 구매 인증 — 물품+영수증 사진 (${file})`),
+    }));
   },
-  delivered(reqId: string, photo: string) {
-    updateReq(reqId, (r) => ({ ...r, status: 'delivered', photo, history: log(r, `전달 완료 · 현장 사진 첨부 (${photo})`) }));
+  proofPack(reqId: string, file: string) {
+    updateReq(reqId, (r) => ({ ...r, proofs: { ...r.proofs, pack: file }, history: log(r, `② 포장 인증 — 전달 직전 상태 사진 (${file})`) }));
+  },
+  /** 현장에서 구매자 수령 코드를 입력하면 즉시 수령·정산 */
+  handoverCode(reqId: string, input: string) {
+    const r = get().requests.find((x) => x.id === reqId);
+    if (!r || input.trim() !== r.code) return false;
+    updateReq(reqId, (x) => ({
+      ...x,
+      status: 'settled',
+      proofs: { ...x.proofs, handover: '현장 수령 코드 확인' },
+      chat: sys(x, '수령 코드 확인 — 거래 완료.'),
+      history: log(x, '③ 수령 인증 — 현장 수령 코드 확인 · 즉시 수령 처리 · 여행자 정산'),
+    }));
+    return true;
+  },
+  handoverPhoto(reqId: string, file: string) {
+    updateReq(reqId, (r) => ({
+      ...r,
+      status: 'delivered',
+      proofs: { ...r.proofs, handover: file },
+      confirmDue: hoursFromNow(RULES.confirmDueHours),
+      chat: sys(r, `전달 사진이 올라왔어요. ${RULES.confirmDueHours}시간 안에 확인하지 않으면 자동 수령 처리돼요.`),
+      history: log(r, `③ 수령 인증 — 현장 전달 사진 (${file})`),
+    }));
   },
   confirm(reqId: string) {
     updateReq(reqId, (r) => ({ ...r, status: 'settled', history: log(r, '구매자 수령 확인 — 여행자에게 정산') }));
   },
   cancel(reqId: string) {
     updateReq(reqId, (r) => {
-      const refunded = r.status === 'escrow' || r.status === 'purchased';
-      return { ...r, status: 'cancelled', history: log(r, refunded ? '취소 — 보관 중이던 대금 전액 환불' : '취소') };
+      const refunded = r.status === 'escrow';
+      return { ...r, status: 'cancelled', history: log(r, refunded ? '취소 — 보관 중이던 대금 전액 자동 환불' : '취소') };
     });
   },
   release(reqId: string) {
-    updateReq(reqId, (r) => ({ ...r, status: 'open', tripId: undefined, dutyUSD: 0, history: log(r, '매칭 해제 — 다시 여행자 찾는 중') }));
+    updateReq(reqId, (r) => ({ ...r, status: 'open', tripId: undefined, history: log(r, '매칭 해제 — 다시 여행자 찾는 중') }));
+  },
+  send(reqId: string, from: 'buyer' | 'traveler', text: string) {
+    const t = text.trim().slice(0, 500);
+    if (!t) return;
+    updateReq(reqId, (r) => ({ ...r, chat: [...r.chat, { at: now(), from, text: t }] }));
+  },
+  /** 미리보기: 시간을 빨리 감아 자동 규칙을 확인 */
+  advance(hours: number) {
+    const s = get();
+    set(runAuto({ ...s, offsetMs: s.offsetMs + hours * 3600_000 }));
+  },
+  tick() {
+    const s = get();
+    const next = runAuto(s);
+    if (next !== s) set(next);
   },
   reset() {
+    state = null;
     set(seed());
   },
 };
