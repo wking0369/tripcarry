@@ -7,10 +7,13 @@ export async function POST(req: NextRequest) {
     return redirectTo('/admin?error=wait');
   }
   const form = await req.formData();
+  // 로그인 후 돌아갈 곳: 사이트 안 경로만 허용
+  const nextRaw = String(form.get('next') ?? '/admin');
+  const next = /^\/(admin|studio)(\/|$|\?)/.test(nextRaw) ? nextRaw : '/admin';
   if (!checkPassword(String(form.get('password') ?? ''))) {
-    return redirectTo('/admin?error=1');
+    return redirectTo(`${next.split('?')[0]}?error=1`);
   }
-  const res = redirectTo('/admin');
+  const res = redirectTo(next);
   res.cookies.set(ADMIN_COOKIE, sessionToken(), {
     httpOnly: true,
     sameSite: 'lax',
