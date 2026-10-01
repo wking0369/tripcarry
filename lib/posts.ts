@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_DIR, readEvents, readSignups } from './data';
-import { TEMPLATES, srcFor, type Post, type PostStats, type Slide } from './studio';
+import { ASSET_ID, TEMPLATES, srcFor, type Post, type PostStats, type Slide } from './studio';
 
 // 마케팅 스튜디오 게시물 저장. 게시물 수가 적어서 JSON 파일 하나로 충분하다.
 const FILE = path.join(DATA_DIR, 'posts.json');
@@ -43,7 +43,8 @@ function cleanSlides(v: unknown): Slide[] {
     if (s && typeof s.fields === 'object') {
       for (const [k, val] of Object.entries(s.fields as Record<string, unknown>).slice(0, 20)) fields[k.slice(0, 20)] = str(val, 400);
     }
-    return { template: pick(s?.template, TEMPLATE_IDS, 'hook'), theme: pick(s?.theme, ['light', 'green', 'dark'] as const, 'light'), fields };
+    const image = typeof s?.image === 'string' && ASSET_ID.test(s.image) ? s.image : undefined;
+    return { template: pick(s?.template, TEMPLATE_IDS, 'hook'), theme: pick(s?.theme, ['light', 'green', 'dark'] as const, 'light'), fields, ...(image ? { image } : {}) };
   });
 }
 
@@ -57,6 +58,7 @@ function clean(input: Record<string, unknown>, base: Post): Post {
     status: pick(input.status, ['draft', 'ready', 'posted'] as const, base.status),
     goal: pick(input.goal, ['buyer', 'price', 'route', 'traveler', 'trust'] as const, base.goal),
     slides: input.slides === undefined ? base.slides : cleanSlides(input.slides),
+    photos: Array.isArray(input.photos) ? input.photos.filter((x): x is string => typeof x === 'string' && ASSET_ID.test(x)).slice(0, 10) : base.photos ?? [],
     caption: str(input.caption ?? base.caption, 2200),
     hashtags: str(input.hashtags ?? base.hashtags, 600),
     updatedAt: new Date().toISOString(),
@@ -78,6 +80,7 @@ export function createPost(input: Record<string, unknown>) {
       status: 'draft',
       goal: 'buyer',
       slides: [],
+      photos: [],
       caption: '',
       hashtags: '',
       createdAt: now,
