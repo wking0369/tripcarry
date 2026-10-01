@@ -4,14 +4,37 @@
 export type PostFormat = 'feed' | 'story';
 export type PostStatus = 'draft' | 'ready' | 'posted';
 export type PostLang = 'ko' | 'en';
-export type TemplateId = 'hook' | 'benefits' | 'compare' | 'route' | 'traveler' | 'steps';
+export type TemplateId = 'hook' | 'photo' | 'benefits' | 'compare' | 'route' | 'traveler' | 'steps';
 export type Theme = 'light' | 'green' | 'dark';
 
 export interface Slide {
   template: TemplateId;
   theme: Theme;
   fields: Record<string, string>;
+  /** 사진 템플릿이 배경으로 쓰는 업로드 이미지 id */
+  image?: string;
 }
+
+/** 마음에 드는 게시물 캡처와 AI가 읽어 둔 스타일 */
+export interface RefPost {
+  id: string;
+  assetId: string;
+  note: string;
+  style: RefStyle | null;
+  createdAt: string;
+}
+
+export interface RefStyle {
+  summary: string;
+  hook: string;
+  layout: string;
+  tone: string;
+  colors: string;
+  caption: string;
+  theme: Theme;
+}
+
+export const ASSET_ID = /^[a-f0-9]{16}$/;
 
 export interface Post {
   id: string;
@@ -24,6 +47,8 @@ export interface Post {
   status: PostStatus;
   goal: CaptionGoal;
   slides: Slide[];
+  /** 이 게시물에 올린 사진 id */
+  photos: string[];
   caption: string;
   hashtags: string;
   createdAt: string;
@@ -73,6 +98,16 @@ export const TEMPLATES: TemplateDef[] = [
       { key: 'tag', label: '작은 태그', ko: '해외 직구 꿀팁', en: 'Shopping abroad, smarter' },
       { key: 'headline', label: '큰 문장', multiline: true, ko: '파리 약국 크림,\n한국에선 왜 비쌀까?', en: 'Why is Paris pharmacy\nskincare so pricey here?' },
       { key: 'sub', label: '작은 문장', multiline: true, ko: '파리에서 오는 여행자가\n현지 가격으로 들고 와요.', en: 'A traveler flying from Paris\nbrings it at the local price.' },
+    ],
+  },
+  {
+    id: 'photo',
+    name: '사진 + 문구',
+    desc: '올린 사진을 배경에 깔고 글을 얹어요',
+    fields: [
+      { key: 'tag', label: '작은 태그', ko: '현지에서 바로', en: 'Straight from the store' },
+      { key: 'headline', label: '큰 문장', multiline: true, ko: '이 진열대 그대로,\n여행자가 들고 와요', en: 'Straight off this shelf,\ncarried by a traveler' },
+      { key: 'sub', label: '작은 문장', multiline: true, ko: '현지 가격 + 작은 보상금이면 끝', en: 'Local price + a small reward' },
     ],
   },
   {

@@ -134,7 +134,36 @@ function footer(ctx: CanvasRenderingContext2D, p: Palette, W: number, H: number,
   return y;
 }
 
-export function drawSlide(ctx: CanvasRenderingContext2D, slide: Slide, format: PostFormat, lang: PostLang, page?: string) {
+// ---------- 업로드한 사진 불러오기 ----------
+const cache = new Map<string, Promise<HTMLImageElement | null>>();
+
+export function assetUrl(id: string) {
+  return `/api/studio/assets/${id}`;
+}
+
+export function loadImage(id: string): Promise<HTMLImageElement | null> {
+  let p = cache.get(id);
+  if (!p) {
+    p = new Promise((res) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => res(null);
+      im.src = assetUrl(id);
+    });
+    cache.set(id, p);
+  }
+  return p;
+}
+
+/** 사진을 칸에 꽉 차게(잘라서) 그린다 */
+function cover(ctx: CanvasRenderingContext2D, im: HTMLImageElement, W: number, H: number) {
+  const s = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+  const w = im.naturalWidth * s;
+  const h = im.naturalHeight * s;
+  ctx.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+}
+
+export function drawSlide(ctx: CanvasRenderingContext2D, slide: Slide, format: PostFormat, lang: PostLang, page?: string, image?: HTMLImageElement | null) {
   const { w: W, h: H } = SIZES[format];
   const M = 80;
   const p = palette(slide.theme);
@@ -143,6 +172,12 @@ export function drawSlide(ctx: CanvasRenderingContext2D, slide: Slide, format: P
   ctx.save();
   ctx.fillStyle = p.bg;
   ctx.fillRect(0, 0, W, H);
+
+  if (slide.template === 'photo') {
+    drawPhoto(ctx, slide, format, lang, page, image ?? null);
+    ctx.restore();
+    return;
+  }
 
   // 배경 장식: 큰 원
   ctx.beginPath();
@@ -276,6 +311,58 @@ export function drawSlide(ctx: CanvasRenderingContext2D, slide: Slide, format: P
   ctx.restore();
 }
 
+function drawPhoto(ctx: CanvasRenderingContext2D, slide: Slide, format: PostFormat, lang: PostLang, page: string | undefined, image: HTMLImageElement | null) {
+  const { w: W, h: H } = SIZES[format];
+  const M = 80;
+  const f = slide.fields;
+  if (image) cover(ctx, image, W, H);
+  else {
+    ctx.fillStyle = '#2a2926';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#8c877c';
+    ctx.font = font(500, 36);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(lang === 'ko' ? '사진을 골라 주세요' : 'Choose a photo', W / 2, H / 2 - 200);
+  }
+  // 글이 잘 보이도록 아래쪽을 어둡게 (테마: 밝게=약하게, 어둡게=강하게)
+  const strength = slide.theme === 'light' ? 0.55 : slide.theme === 'dark' ? 0.85 : 0.7;
+  const g = ctx.createLinearGradient(0, H * 0.25, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(0.55, `rgba(0,0,0,${strength * 0.75})`);
+  g.addColorStop(1, `rgba(0,0,0,${strength})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const topShade = ctx.createLinearGradient(0, 0, 0, 260);
+  topShade.addColorStop(0, 'rgba(0,0,0,0.35)');
+  topShade.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topShade;
+  ctx.fillRect(0, 0, W, 260);
+  if (slide.theme === 'green') {
+    ctx.fillStyle = 'rgba(15,107,92,0.28)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const p = palette('dark');
+  brand(ctx, p, M, 'dark');
+  const bottom = footer(ctx, p, W, H, M, lang, 'dark', page);
+  const maxW = W - M * 2;
+  // 아래에서부터 쌓는다: 작은 문장 → 큰 문장 → 태그
+  ctx.font = font(500, 44);
+  const subLines = f.sub ? wrap(ctx, f.sub, maxW).slice(0, 3) : [];
+  ctx.font = font(700, 88);
+  const headLines = wrap(ctx, f.headline ?? '', maxW).slice(0, 4);
+  const headH = headLines.length * 88 * 1.18;
+  const subH = subLines.length * 44 * 1.35;
+  let y = bottom - 70 - subH - (subLines.length ? 36 : 0) - headH;
+  if (f.tag) {
+    const tagY = y - 100;
+    chip(ctx, f.tag, M, tagY, { ...p, chip: C.accent, chipText: '#ffffff' });
+  }
+  y = text(ctx, headLines.join('\n'), M, y, { size: 88, weight: 700, color: '#ffffff', max: maxW, lh: 1.18 });
+  if (subLines.length) text(ctx, subLines.join('\n'), M, y + 36, { size: 44, weight: 500, color: '#e9e5dc', max: maxW, lh: 1.35 });
+}
+
 export async function ensureFonts() {
   try {
     await Promise.all([document.fonts.load(font(400, 40)), document.fonts.load(font(700, 40)), document.fonts.load(font(500, 40))]);
@@ -287,11 +374,12 @@ export async function ensureFonts() {
 
 export async function slideToBlob(slide: Slide, format: PostFormat, lang: PostLang, page?: string): Promise<Blob> {
   await ensureFonts();
+  const image = slide.image ? await loadImage(slide.image) : null;
   const { w, h } = SIZES[format];
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
-  drawSlide(canvas.getContext('2d')!, slide, format, lang, page);
+  drawSlide(canvas.getContext('2d')!, slide, format, lang, page, image);
   return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('PNG 변환 실패'))), 'image/png'));
 }
 

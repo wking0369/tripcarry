@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { download, drawSlide, ensureFonts, slideToBlob } from '@/lib/studio-draw';
+import { assetUrl, download, drawSlide, ensureFonts, loadImage, slideToBlob } from '@/lib/studio-draw';
+import RefsPanel from './RefsPanel';
+import { uploadImage } from './upload';
 import {
   GOALS,
   ROUTE_PRESETS,
@@ -21,6 +23,7 @@ import {
   type PostLang,
   type PostStats,
   type PostStatus,
+  type RefPost,
   type Slide,
   type TemplateId,
   type Theme,
@@ -60,11 +63,16 @@ export default function StudioClient() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [refs, setRefs] = useState<RefPost[]>([]);
 
   const load = useCallback(async () => {
-    const data = await api<{ posts: Post[]; stats: Record<string, PostStats> }>('/api/studio/posts');
+    const [data, r] = await Promise.all([
+      api<{ posts: Post[]; stats: Record<string, PostStats> }>('/api/studio/posts'),
+      api<{ refs: RefPost[] }>('/api/studio/refs'),
+    ]);
     setPosts(data.posts);
     setStats(data.stats);
+    setRefs(r.refs);
     setLoading(false);
   }, []);
 
@@ -193,6 +201,7 @@ export default function StudioClient() {
                 })
               )}
             </div>
+            <RefsPanel refs={refs} setRefs={setRefs} />
           </aside>
 
           <section className="studio-main">
@@ -207,6 +216,7 @@ export default function StudioClient() {
                 key={draft.id}
                 post={draft}
                 stats={stats[draft.id]}
+                refs={refs}
                 patch={patch}
                 dirty={dirty}
                 saving={saving}
@@ -286,9 +296,9 @@ function SlideCanvas({ slide, format, lang, page, className }: { slide: Slide; f
   const { w, h } = SIZES[format];
   useEffect(() => {
     let alive = true;
-    ensureFonts().then(() => {
+    Promise.all([ensureFonts(), slide.image ? loadImage(slide.image) : Promise.resolve(null)]).then(([, image]) => {
       const ctx = ref.current?.getContext('2d');
-      if (alive && ctx) drawSlide(ctx, slide, format, lang, page);
+      if (alive && ctx) drawSlide(ctx, slide, format, lang, page, image);
     });
     return () => {
       alive = false;
@@ -297,9 +307,10 @@ function SlideCanvas({ slide, format, lang, page, className }: { slide: Slide; f
   return <canvas ref={ref} width={w} height={h} className={className} />;
 }
 
-function Editor({ post, stats, patch, dirty, saving, msg, onSave, onDelete }: {
+function Editor({ post, stats, refs, patch, dirty, saving, msg, onSave, onDelete }: {
   post: Post;
   stats?: PostStats;
+  refs: RefPost[];
   patch: (p: Partial<Post>) => void;
   dirty: boolean;
   saving: boolean;
@@ -417,6 +428,8 @@ function Editor({ post, stats, patch, dirty, saving, msg, onSave, onDelete }: {
         </div>
       </div>
 
+      <AiPanel post={post} refs={refs} patch={(p) => { patch(p); setCur(0); }} />
+
       <section className="card studio-section">
         <div className="section-head">
           <h2>① 카드 이미지</h2>
@@ -465,6 +478,23 @@ function Editor({ post, stats, patch, dirty, saving, msg, onSave, onDelete }: {
                   ))}
                 </div>
               </div>
+              {slide.template === 'photo' && (
+                <div className="field">
+                  <span className="label">배경 사진</span>
+                  {(post.photos ?? []).length === 0 ? (
+                    <span className="small muted">위 "AI로 만들기"에서 이 게시물에 사진을 먼저 올려 주세요.</span>
+                  ) : (
+                    <div className="photo-pick">
+                      {(post.photos ?? []).map((id) => (
+                        <button key={id} type="button" aria-pressed={slide.image === id} onClick={() => setSlide({ image: id })}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={assetUrl(id)} alt="" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {def.fields.map((f) => (
                 <label key={f.key} className="field">
                   <span className="label">{f.label}</span>
@@ -558,5 +588,132 @@ function Editor({ post, stats, patch, dirty, saving, msg, onSave, onDelete }: {
         </div>
       </section>
     </div>
+  );
+}
+
+function AiPanel({ post, refs, patch }: { post: Post; refs: RefPost[]; patch: (p: Partial<Post>) => void }) {
+  const [idea, setIdea] = useState('');
+  const [count, setCount] = useState(post.format === 'story' ? 1 : 4);
+  const [useRefs, setUseRefs] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState('');
+  const photos = post.photos ?? [];
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploading(true);
+    setErr('');
+    try {
+      const ids: string[] = [];
+      for (const f of Array.from(files).slice(0, 5 - photos.length)) ids.push(await uploadImage(f));
+      patch({ photos: [...photos, ...ids] });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : '사진을 올리지 못했어요.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const generate = async () => {
+    if (!idea.trim()) return;
+    setBusy(true);
+    setErr('');
+    try {
+      const res = await fetch('/api/studio/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ idea, lang: post.lang, format: post.format, goal: post.goal, slideCount: count, refIds: useRefs, photoIds: photos }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI가 만들지 못했어요.');
+      if (post.slides.length && !confirm('지금 카드와 캡션을 AI가 만든 것으로 바꿀까요? (저장 전이라 마음에 안 들면 다시 만들 수 있어요)')) return;
+      patch({ title: data.title, slides: data.slides, caption: data.caption, hashtags: data.hashtags });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'AI가 만들지 못했어요.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card studio-section ai-panel">
+      <div className="section-head">
+        <h2>✨ AI로 만들기</h2>
+        <span>아이디어 + (참고 게시물) + (사진) → 카드·캡션·해시태그</span>
+      </div>
+      <textarea
+        className="textarea"
+        rows={3}
+        value={idea}
+        onChange={(e) => setIdea(e.target.value)}
+        maxLength={1000}
+        placeholder="예: 파리 약국 크림을 한국 가격과 비교하는 카드뉴스. 20~30대 여성, 저장하고 싶게. 마지막에 사전 등록 유도"
+        aria-label="아이디어"
+      />
+
+      <div className="field">
+        <span className="label">사진 <span className="opt">선택 · 최대 5장 · AI가 사진을 보고 관련 문구를 쓰고, 사진 카드 배경으로 써요</span></span>
+        <div className="photo-pick">
+          {photos.map((id) => (
+            <div key={id} className="photo-chip">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={assetUrl(id)} alt="" />
+              <button type="button" aria-label="사진 빼기" onClick={() => patch({ photos: photos.filter((x) => x !== id), slides: post.slides.map((s) => (s.image === id ? { ...s, image: undefined } : s)) })}>×</button>
+            </div>
+          ))}
+          {photos.length < 5 && (
+            <label className="photo-add">
+              {uploading ? '올리는 중…' : '+ 사진'}
+              <input type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} />
+            </label>
+          )}
+        </div>
+      </div>
+
+      {refs.length > 0 && (
+        <div className="field">
+          <span className="label">참고할 게시물 <span className="opt">선택 · 최대 5개 · 왼쪽 보관함에서 추가</span></span>
+          <div className="photo-pick">
+            {refs.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                aria-pressed={useRefs.includes(r.id)}
+                title={r.style?.summary ?? r.note}
+                onClick={() => setUseRefs((u) => (u.includes(r.id) ? u.filter((x) => x !== r.id) : u.length < 5 ? [...u, r.id] : u))}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={assetUrl(r.assetId)} alt={r.note || '참고 게시물'} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <label className="small" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          카드
+          <select className="select" style={{ width: 90 }} value={count} onChange={(e) => setCount(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <option key={n} value={n}>{n}장</option>
+            ))}
+          </select>
+        </label>
+        <label className="small" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          목적
+          <select className="select" style={{ width: 'auto' }} value={post.goal} onChange={(e) => patch({ goal: e.target.value as CaptionGoal })}>
+            {GOALS.map((g) => (
+              <option key={g.id} value={g.id}>{g.label}</option>
+            ))}
+          </select>
+        </label>
+        <span className="small muted">{post.lang === 'ko' ? '한국어' : 'English'} · {post.format === 'feed' ? '피드' : '스토리'} (위 설정)</span>
+        <button type="button" className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={generate} disabled={busy || !idea.trim()}>
+          {busy ? 'AI가 만드는 중… (10~30초)' : '✨ AI로 카드·캡션 만들기'}
+        </button>
+      </div>
+      {err && <div className="notice notice-warn small">{err}</div>}
+    </section>
   );
 }
