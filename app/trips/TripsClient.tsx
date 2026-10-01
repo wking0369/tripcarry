@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { CATEGORIES, COUNTRIES, allowanceUSD, evaluate, fmtKRW, type CountryCode } from '@/lib/customs';
-import { actions, breakdown, fitsTrip, tripLoadUSD, useP2P, type Trip } from '@/lib/store';
+import { actions, breakdown, demoNow, fitsTrip, tripBlocked, tripLoadUSD, useP2P, type Trip } from '@/lib/store';
+import { RULES } from '@/lib/rules';
 import { CountrySelect, GuardPanel, Loading, Route, usd } from '../ui';
 
 const EMPTY_FORM = {
@@ -152,6 +153,11 @@ function TripOption({ trip, active, onPick, load }: { trip: Trip; active: boolea
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <strong>{trip.traveler}</strong>
           {trip.verified ? <span className="chip chip-ok">인증</span> : <span className="chip chip-neutral">미인증</span>}
+          {trip.reviews > 0 ? (
+            <span className={`chip ${trip.rating <= RULES.minRating ? 'chip-warn' : 'chip-neutral'}`}>★ {trip.rating.toFixed(1)} ({trip.reviews})</span>
+          ) : (
+            <span className="chip chip-neutral">새 여행자</span>
+          )}
           <Route from={trip.from} to={trip.to} fromCity={trip.fromCity} toCity={trip.toCity} />
         </div>
         <div className="kv" style={{ marginTop: 4 }}>
@@ -170,6 +176,7 @@ function Matches({ trip, flash }: { trip: Trip; flash: string | null }) {
   const open = s.requests.filter((r) => r.status === 'open' && fitsTrip(r, trip));
   const mine = s.requests.filter((r) => r.tripId === trip.id && r.status !== 'cancelled');
   const [accepted, setAccepted] = useState<string | null>(null);
+  const blocked = tripBlocked(trip, demoNow(s));
 
   return (
     <section className="section">
@@ -184,6 +191,11 @@ function Matches({ trip, flash }: { trip: Trip; flash: string | null }) {
         </div>
       )}
       {trip.note && <p className="small muted">“{trip.note}”</p>}
+      {blocked && (
+        <div className="notice notice-warn">
+          {blocked}. 평점 {RULES.minRating.toFixed(1)} 이하(후기 {RULES.minReviews}개 이상)이거나 노쇼로 정지된 여행자는 시스템이 자동으로 매칭을 막아요.
+        </div>
+      )}
       {open.length === 0 ? (
         <div className="card empty">
           {COUNTRIES[trip.from].name} → {COUNTRIES[trip.to].name} 경로에서 도착일({trip.arriveDate}) 이후로 받을 수 있는 요청이 아직 없어요.
@@ -220,7 +232,7 @@ function Matches({ trip, flash }: { trip: Trip; flash: string | null }) {
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={guard.zone === 'block'}
+                    disabled={guard.zone === 'block' || Boolean(blocked)}
                     onClick={() => {
                       actions.accept(r.id, trip, guard.estDutyUSD);
                       setAccepted(r.title);

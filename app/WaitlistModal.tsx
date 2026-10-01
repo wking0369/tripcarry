@@ -7,13 +7,23 @@ import { useSite } from './Site';
 
 type Role = 'buyer' | 'traveler' | 'both';
 
-export default function WaitlistModal({ initialRole, onClose }: { initialRole: Role; onClose: () => void }) {
+export default function WaitlistModal({
+  initialRole,
+  initialFrom = '',
+  initialTo = '',
+  onClose,
+}: {
+  initialRole: Role;
+  initialFrom?: string;
+  initialTo?: string;
+  onClose: () => void;
+}) {
   const { t, lang, visitor } = useSite();
   const m = t.modal;
   const [role, setRole] = useState<Role>(initialRole);
   const [email, setEmail] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [from, setFrom] = useState(initialFrom);
+  const [to, setTo] = useState(initialTo);
   const [item, setItem] = useState('');
   const [pay, setPay] = useState('');
   const [website, setWebsite] = useState('');
@@ -129,7 +139,7 @@ export default function WaitlistModal({ initialRole, onClose }: { initialRole: R
               {state === 'sending' ? m.sending : m.submit}
             </button>
             <p className="tiny muted">
-              {m.consent} <Link href="/privacy" onClick={onClose}>{t.privacy}</Link>
+              {m.consent} <Link href="/terms" onClick={onClose}>{t.terms}</Link> · <Link href="/privacy" onClick={onClose}>{t.privacy}</Link>
             </p>
           </form>
         )}

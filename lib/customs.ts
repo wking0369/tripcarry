@@ -98,7 +98,7 @@ export const CATEGORIES: Record<Category, { label: string; status: RuleStatus; n
   cosmetics: { label: '화장품·향수', status: 'ok', note: '액체류 100ml 초과는 기내 반입이 안 돼요. 위탁 수하물로 부쳐야 해요.' },
   luxury: { label: '명품·고가품', status: 'ok', note: '고가품은 세관 신고 대상일 가능성이 높아요. 영수증과 사진을 반드시 남겨요.' },
   food: { label: '포장 가공식품', status: 'ok', note: '밀봉된 가공식품만 가능해요. 육류 성분이 들어가면 반입 금지예요.' },
-  supplement: { label: '건강기능식품·의약품', status: 'limit', note: '자가 사용 소량만 허용돼요(한국 6병, 일본 2개월분 등). 처방약·특정 성분은 금지될 수 있어요.' },
+  supplement: { label: '건강기능식품', status: 'limit', note: '자가 사용 소량만 허용돼요(한국 6병, 일본 2개월분 등). 의약품은 요청할 수 없어요.' },
   alcohol: { label: '주류', status: 'limit', note: '나라별 면세 병 수 안에서만 별도 면세예요. 넘으면 과세돼요.' },
   tobacco: { label: '담배', status: 'limit', note: '1보루(200개비) 안에서만 면세예요. 대리 운반은 권장하지 않아요.' },
   battery: { label: '보조배터리·리튬 제품', status: 'limit', note: '기내 휴대만 가능하고 160Wh 이하만 돼요(100Wh 초과는 항공사 승인 필요).' },
@@ -113,6 +113,7 @@ const BLOCK_WORDS: { words: string[]; reason: string; en: string }[] = [
   { words: ['육포', '소시지', '하몽', '살라미', '햄', '만두', '베이컨', 'jerky', 'sausage', 'jamon', 'jamón', 'salami', 'prosciutto', 'bacon', 'dumpling'], reason: '육가공품으로 보여요', en: 'looks like a meat product' },
   { words: ['생과일', '씨앗', '묘목', '망고스틴', '두리안'], reason: '검역 대상(생과일·씨앗)으로 보여요', en: 'looks like fresh produce or seeds (quarantine)' },
   { words: ['짝퉁', '레플리카', '이미테이션', 'replica', '가품', '미러급', 'counterfeit', 'fake ', 'knockoff', 'dupe bag'], reason: '모조품은 모든 나라에서 반입 금지예요', en: 'counterfeits are banned everywhere' },
+  { words: ['처방', '전문의약품', '의약품', '항생제', '수면제', 'prescription', 'antibiotic', 'opioid'], reason: '의약품은 반입이 제한돼 요청할 수 없어요', en: 'medicines are restricted and can’t be requested' },
   { words: ['총', '도검', '칼날', '가스총', '전기충격기', '마약', '대마', 'cbd', 'taser', 'pepper spray', 'cannabis', 'marijuana', 'gun '], reason: '무기·마약류는 반입 금지예요', en: 'weapons and drugs are banned' },
 ];
 
@@ -135,7 +136,7 @@ const CATEGORY_EN: Record<Category, { label: string; note: string }> = {
   cosmetics: { label: 'Cosmetics & perfume', note: 'Liquids over 100ml must go in checked baggage.' },
   luxury: { label: 'Luxury goods', note: 'High-value items are likely to need declaring. Keep receipts and photos.' },
   food: { label: 'Packaged snacks & food', note: 'Sealed, processed food only. Anything with meat is banned.' },
-  supplement: { label: 'Supplements & medicine', note: 'Personal-use quantities only (e.g. 6 bottles in Korea). Some ingredients are banned.' },
+  supplement: { label: 'Health supplements', note: 'Personal-use quantities only (e.g. 6 bottles in Korea). Medicines can’t be requested.' },
   alcohol: { label: 'Alcohol', note: 'Separately exempt only up to each country’s bottle limit.' },
   tobacco: { label: 'Tobacco', note: 'Exempt up to one carton (200 cigarettes). Carrying for others is discouraged.' },
   battery: { label: 'Power banks & lithium', note: 'Carry-on only, up to 160Wh (over 100Wh needs airline approval).' },

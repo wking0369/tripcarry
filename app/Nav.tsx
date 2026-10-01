@@ -16,7 +16,6 @@ export default function Nav() {
   const path = usePathname();
   const { t, lang, setLang, openWaitlist } = useSite();
   if (path.startsWith('/admin')) return null;
-  const isHome = path === '/';
   const isDemo = DEMO.some((d) => d.href === path);
 
   return (
@@ -26,14 +25,9 @@ export default function Nav() {
           <span className="brand-mark p2p-mark" aria-hidden="true">T</span>
           <span>TripCarry</span>
         </Link>
-        <nav className="tabs" aria-label="TripCarry">
-          {isHome && (
-            <>
-              <a className="tab hide-sm" href="#how">{t.nav.how}</a>
-              <a className="tab hide-sm" href="#calc">{t.nav.calc}</a>
-            </>
-          )}
-        </nav>
+        <span style={{ flex: 1 }} />
+        <Link className="tab hide-sm" href="/rules">{t.rules}</Link>
+        <Link className="tab" href="/help">{t.help}</Link>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLang(lang === 'en' ? 'ko' : 'en')}>
           {t.nav.other}
         </button>

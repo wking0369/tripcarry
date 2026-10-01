@@ -11,7 +11,7 @@ interface SiteCtx {
   lang: Lang;
   t: Dict;
   setLang: (l: Lang) => void;
-  openWaitlist: (role: Role, cta: string) => void;
+  openWaitlist: (role: Role, cta: string, preset?: { from?: string; to?: string }) => void;
   visitor: () => { vid: string; src: string };
 }
 
@@ -65,7 +65,7 @@ export function track(type: 'visit' | 'cta' | 'modal_open', extra: { cta?: strin
 export default function SiteProvider({ lang, children }: { lang: Lang; children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
-  const [modal, setModal] = useState<{ role: Role } | null>(null);
+  const [modal, setModal] = useState<{ role: Role; from?: string; to?: string } | null>(null);
   const lastPath = useRef<string | null>(null);
 
   useEffect(() => {
@@ -83,9 +83,9 @@ export default function SiteProvider({ lang, children }: { lang: Lang; children:
   );
 
   const openWaitlist = useCallback(
-    (role: Role, cta: string) => {
+    (role: Role, cta: string, preset?: { from?: string; to?: string }) => {
       track('cta', { cta }, lang);
-      setModal({ role });
+      setModal({ role, ...preset });
     },
     [lang],
   );
@@ -95,7 +95,7 @@ export default function SiteProvider({ lang, children }: { lang: Lang; children:
   return (
     <Ctx.Provider value={{ lang, t: DICT[lang], setLang, openWaitlist, visitor }}>
       {children}
-      {modal && <WaitlistModal initialRole={modal.role} onClose={() => setModal(null)} />}
+      {modal && <WaitlistModal initialRole={modal.role} initialFrom={modal.from} initialTo={modal.to} onClose={() => setModal(null)} />}
     </Ctx.Provider>
   );
 }
