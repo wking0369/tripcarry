@@ -69,7 +69,7 @@ export default function SiteProvider({ lang, children }: { lang: Lang; children:
   const lastPath = useRef<string | null>(null);
 
   useEffect(() => {
-    if (path.startsWith('/admin') || lastPath.current === path) return;
+    if (path.startsWith('/admin') || path.startsWith('/studio') || lastPath.current === path) return;
     lastPath.current = path;
     track('visit', {}, lang);
   }, [path, lang]);

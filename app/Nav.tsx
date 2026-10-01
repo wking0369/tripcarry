@@ -15,7 +15,7 @@ const DEMO = [
 export default function Nav() {
   const path = usePathname();
   const { t, lang, setLang, openWaitlist } = useSite();
-  if (path.startsWith('/admin')) return null;
+  if (path.startsWith('/admin') || path.startsWith('/studio')) return null;
   const isDemo = DEMO.some((d) => d.href === path);
 
   return (

@@ -6,7 +6,8 @@ import { useSite } from './Site';
 
 export default function Footer() {
   const { t } = useSite();
-  if (usePathname().startsWith('/admin')) return null;
+  const p = usePathname();
+  if (p.startsWith('/admin') || p.startsWith('/studio')) return null;
   return (
     <footer className="p2p-footer">
       <p>{t.footer1}</p>

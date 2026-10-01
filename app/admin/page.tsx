@@ -103,6 +103,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <p>방문·클릭은 브라우저 기준으로 중복을 뺐어요. 같은 이메일로 다시 등록하면 마지막 것만 세요.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <a className="btn btn-sm" href="/studio">마케팅 스튜디오</a>
           <a className="btn btn-sm" href="/api/admin/export">CSV 받기</a>
           <form method="post" action="/api/admin/logout"><button className="btn btn-ghost btn-sm" type="submit">로그아웃</button></form>
         </div>
