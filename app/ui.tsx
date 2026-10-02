@@ -26,7 +26,8 @@ export function Route({ from, to, fromCity, toCity }: { from: CountryCode; to: C
 }
 
 export function usd(n: number) {
-  return `$${fmt(n)}`;
+  // 결제 금액은 센트까지 항상 두 자리로
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function Money({ value, className }: { value: number; className?: string }) {

@@ -223,8 +223,8 @@ function Matches({ trip, flash }: { trip: Trip; flash: string | null }) {
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className="money reward">{usd(r.rewardUSD - b.travelerFee)}</div>
-                    <div className="tiny muted">수수료 뗀 내 수익 · 약 {fmtKRW(r.rewardUSD - b.travelerFee)}</div>
+                    <div className="money reward">{usd(b.reward - b.travelerFee)}</div>
+                    <div className="tiny muted">수수료 뗀 내 수익 · 약 {fmtKRW(b.reward - b.travelerFee)}</div>
                   </div>
                 </div>
                 <GuardPanel result={guard} compact={guard.zone === 'safe'} />

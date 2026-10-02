@@ -5,10 +5,10 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import type { Category, CountryCode } from './customs';
-import { breakdown } from './fees';
+import { breakdown, rewardFor, type ItemSize } from './fees';
 import { RULES } from './rules';
 
-export { FEES, breakdown } from './fees';
+export { FEES, breakdown, rewardFor } from './fees';
 
 export type Status = 'open' | 'matched' | 'escrow' | 'purchased' | 'delivered' | 'settled' | 'cancelled';
 
@@ -21,7 +21,13 @@ export interface Req {
   category: Category;
   qty: number;
   unitUSD: number;
+  /** 보상금은 rewardFor(물품 금액)로 자동 계산 (최소 $10, 10%) */
   rewardUSD: number;
+  packaging: 'box' | 'nobox';
+  size: ItemSize;
+  details: string;
+  /** 기다릴 수 있는 기간 (일) */
+  waitDays: number;
   from: CountryCode;
   to: CountryCode;
   toCity: string;
@@ -85,7 +91,7 @@ export const STATUS_LABEL: Record<Status, string> = {
 
 export const FLOW: Status[] = ['open', 'matched', 'escrow', 'purchased', 'delivered', 'settled'];
 
-const KEY = 'tripcarry-demo-v2';
+const KEY = 'tripcarry-demo-v3';
 const EMPTY: State = { requests: [], trips: [], offsetMs: 0 };
 let state: State | null = null;
 const listeners = new Set<() => void>();
@@ -137,23 +143,28 @@ function seed(): State {
     { id: 't_haru', createdAt: t, traveler: '하루', from: 'JP', fromCity: '도쿄', to: 'KR', toCity: '부산', departDate: day(3), arriveDate: day(3), spaceKg: 3, resident: true, verified: true, note: '시부야·이케부쿠로 들를 예정.', rating: 4.8, reviews: 12 },
     { id: 't_tae', createdAt: t, traveler: '태호', from: 'FR', fromCity: '니스', to: 'KR', toCity: '서울', departDate: day(7), arriveDate: day(8), spaceKg: 5, resident: true, verified: true, note: '남부 프랑스 약국 화장품 가능.', rating: 3.6, reviews: 9 },
   ];
-  const mk = (r: Omit<Req, 'createdAt' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat'> & Partial<Req>): Req => ({
+  const mk = (r: Omit<Req, 'createdAt' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat' | 'packaging' | 'size' | 'details' | 'waitDays'> & Partial<Req>): Req => ({
     createdAt: t,
     dutyUSD: 0,
+    packaging: 'nobox',
+    size: 'small',
+    details: '',
+    waitDays: 30,
     proofs: {},
     code: code6(),
     chat: [],
     history: [{ at: t, text: '구매 요청 등록' }],
     ...r,
+    rewardUSD: rewardFor(r.unitUSD * r.qty),
   });
   const requests: Req[] = [
     mk({ id: 'r_jason', buyer: '제이슨', title: '르 라보 상탈 33 오 드 퍼퓸 50ml', link: 'https://www.lelabofragrances.com', category: 'cosmetics', qty: 1, unitUSD: 230, rewardUSD: 25, from: 'FR', to: 'KR', toCity: '서울', neededBy: day(20), note: '파리 매장 가격이 훨씬 싸서요. 선물 포장 부탁드려요.', status: 'open' }),
     mk({ id: 'r_seoyeon', buyer: '서연', title: '포켓몬센터 도쿄 한정 피카츄 인형', link: 'https://www.pokemoncenter-online.com', category: 'general', qty: 2, unitUSD: 28, rewardUSD: 12, from: 'JP', to: 'KR', toCity: '부산', neededBy: day(14), note: '', status: 'open' }),
     mk({ id: 'r_bagel', buyer: '도윤', title: "Trader Joe's 에브리띵 베이글 시즈닝", link: 'https://www.traderjoes.com', category: 'food', qty: 6, unitUSD: 3, rewardUSD: 10, from: 'US', to: 'KR', toCity: '서울', neededBy: day(30), note: '밀봉 새 제품으로요.', status: 'open' }),
-    mk({ id: 'r_watch', buyer: '지훈', title: 'Apple Watch Ultra 3 (미국 판매가)', link: 'https://www.apple.com/shop', category: 'electronics', qty: 1, unitUSD: 799, rewardUSD: 60, from: 'US', to: 'KR', toCity: '서울', neededBy: day(25), note: '관세는 제가 부담할게요.', status: 'open' }),
+    mk({ id: 'r_watch', buyer: '지훈', title: 'Apple Watch Ultra 3 (미국 판매가)', size: 'medium', packaging: 'box', link: 'https://www.apple.com/shop', category: 'electronics', qty: 1, unitUSD: 799, rewardUSD: 60, from: 'US', to: 'KR', toCity: '서울', neededBy: day(25), note: '관세는 제가 부담할게요.', status: 'open' }),
     mk({ id: 'r_cosrx', buyer: 'Sarah', title: 'COSRX 스네일 96 뮤신 에센스', link: 'https://www.oliveyoung.co.kr', category: 'cosmetics', qty: 3, unitUSD: 18, rewardUSD: 15, from: 'KR', to: 'US', toCity: 'New York', neededBy: day(30), note: 'Olive Young price please!', status: 'open' }),
     mk({
-      id: 'r_nike', buyer: '현우', title: 'Nike 한정판 스니커즈 (US 9)', link: 'https://www.nike.com', category: 'general', qty: 1, unitUSD: 180, rewardUSD: 35, from: 'US', to: 'KR', toCity: '서울', neededBy: day(15), note: '', status: 'escrow', tripId: 't_minseo',
+      id: 'r_nike', buyer: '현우', title: 'Nike 한정판 스니커즈 (US 9)', size: 'medium', packaging: 'box', link: 'https://www.nike.com', category: 'general', qty: 1, unitUSD: 180, rewardUSD: 35, from: 'US', to: 'KR', toCity: '서울', neededBy: day(15), note: '', status: 'escrow', tripId: 't_minseo',
       receiptDue: new Date(Date.now() + 40 * 3600_000).toISOString(),
       chat: [
         { at: t, from: 'system', text: '매칭됐어요. 전달 장소·시간은 이 채팅에서 직접 정해 주세요.' },
@@ -270,11 +281,12 @@ function runAuto(s: State): State {
 }
 
 export const actions = {
-  addRequest(r: Omit<Req, 'id' | 'createdAt' | 'status' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat'> & { dutyUSD?: number }) {
+  addRequest(r: Omit<Req, 'id' | 'createdAt' | 'status' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat' | 'rewardUSD'> & { dutyUSD?: number }) {
     const s = get();
     const req: Req = {
       dutyUSD: 0,
       ...r,
+      rewardUSD: rewardFor(r.unitUSD * r.qty),
       id: uid('r'),
       createdAt: now(),
       status: 'open',
