@@ -75,7 +75,7 @@ function TermsKo() {
       <section className="section">
         <h2>제7조 (에스크로 결제 및 정산)</h2>
         <ol>
-          <li>구매자는 매칭 후 물품 대금, 여행자 보상금, 서비스 수수료(및 해당 시 예상 세액)를 회사에 결제합니다.</li>
+          <li>구매자는 매칭 후 물품 대금, 여행자 보상금(물품 대금의 10%, 최소 미화 10달러), TripCarry 수수료, 결제 수수료(카드사·결제대행사 수수료) 및 해당 시 예상 세액을 회사에 결제합니다. 각 금액은 결제 전 주문 요약에 나누어 표시합니다.</li>
           <li>회사는 수령이 확인된 때(수령 코드 입력, 구매자 확인 또는 제8조의 자동 수령) 여행자에게 대금을 정산합니다.</li>
         </ol>
       </section>
@@ -192,7 +192,7 @@ function TermsEn() {
       <section className="section">
         <h2>7. Escrow payment and settlement</h2>
         <ol>
-          <li>After a match, the buyer pays the item price, traveler reward, service fee (and estimated duty, if applicable) to the Company.</li>
+          <li>After a match, the buyer pays the item price, the traveler reward (10% of the item price, minimum US$10), the TripCarry fee, the payment processing fee (card/PG fees) and any estimated duty. Each amount is shown separately in the order summary before payment.</li>
           <li>Funds are released to the traveler when receipt is confirmed (hand-off code, buyer confirmation, or automatic confirmation under §8).</li>
         </ol>
       </section>
