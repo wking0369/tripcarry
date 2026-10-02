@@ -3,10 +3,39 @@ import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 // 수요 조사용 기록 저장소. DB 없이 JSON Lines 파일 두 개에 한 줄씩 덧붙인다.
-// Railway에서는 Volume을 붙이고 DATA_DIR(예: /data)을 지정해야 재배포해도 남는다.
+// Railway에서는 Volume을 붙여야 재배포해도 남는다. Volume을 붙이면 Railway가
+// RAILWAY_VOLUME_MOUNT_PATH를 자동으로 넣어 주므로, 그 값으로 실제 연결 여부를 판단한다.
 
-export const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
-export const hasPersistentStorage = Boolean(process.env.DATA_DIR);
+const VOLUME = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
+const ON_RAILWAY = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_ID);
+const WANTED = process.env.DATA_DIR || '';
+
+function inside(child: string, parent: string) {
+  const rel = path.relative(path.resolve(parent), path.resolve(child));
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/** Volume이 있으면 반드시 그 안에 저장한다 (DATA_DIR이 Volume 밖을 가리키면 Volume 경로를 쓴다). */
+export const DATA_DIR = VOLUME ? (WANTED && inside(WANTED, VOLUME) ? WANTED : VOLUME) : WANTED || path.join(process.cwd(), 'data');
+
+export const storage = (() => {
+  if (VOLUME) {
+    const note = WANTED && !inside(WANTED, VOLUME) ? `DATA_DIR(${WANTED})이 Volume 경로(${VOLUME}) 밖이라 Volume 경로에 저장하고 있어요.` : '';
+    return { persistent: true, message: note };
+  }
+  if (ON_RAILWAY) {
+    return { persistent: false, message: 'Railway에 Volume이 연결되지 않았어요. 지금 기록은 새로 배포할 때마다 지워져요.' };
+  }
+  return WANTED
+    ? { persistent: true, message: '' }
+    : { persistent: false, message: '저장 위치(DATA_DIR)가 설정되지 않아 임시 폴더에 저장하고 있어요.' };
+})();
+
+/** 하위 호환 */
+export const hasPersistentStorage = storage.persistent;
+
+/** 지금 떠 있는 배포의 커밋 (Railway가 넣어 주는 값) */
+export const DEPLOY_VERSION = (process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7) || 'local';
 
 const EVENTS = path.join(DATA_DIR, 'events.jsonl');
 const SIGNUPS = path.join(DATA_DIR, 'signups.jsonl');

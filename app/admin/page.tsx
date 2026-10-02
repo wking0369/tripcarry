@@ -1,5 +1,5 @@
 import { adminConfigured, isAdmin } from '@/lib/admin';
-import { hasPersistentStorage, readEvents, readSignups, type Signup } from '@/lib/data';
+import { DEPLOY_VERSION, readEvents, readSignups, storage, type Signup } from '@/lib/data';
 import { countryName } from '@/lib/i18n';
 
 export const metadata = { title: '수요 조사 결과', robots: { index: false, follow: false } };
@@ -101,6 +101,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <div>
           <h1>수요 조사 결과</h1>
           <p>방문·클릭은 브라우저 기준으로 중복을 뺐어요. 같은 이메일로 다시 등록하면 마지막 것만 세요.</p>
+          <p className="tiny muted">배포 버전 <code>{DEPLOY_VERSION}</code> · 저장 공간 {storage.persistent ? '연결됨 ✓' : '연결 안 됨 ✕'}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <a className="btn btn-sm" href="/studio">마케팅 스튜디오</a>
@@ -109,10 +110,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
 
-      {!hasPersistentStorage && (
+      {!storage.persistent ? (
         <div className="notice notice-warn">
-          저장 공간(Volume)이 연결되지 않았어요. 지금 기록은 재배포하면 사라져요. Railway에서 Volume을 붙이고 <code>DATA_DIR</code>을 설정해 주세요.
+          <b>저장 공간 문제:</b> {storage.message}
+          <ol style={{ margin: '8px 0 0', paddingLeft: 20 }}>
+            <li>Railway에서 tripcarry 서비스 카드를 우클릭 → <b>Attach Volume</b> → Mount path <code>/data</code></li>
+            <li>Variables의 <code>DATA_DIR</code>은 <code>/data</code>로 두거나 지워도 돼요 (Volume 경로를 자동으로 써요)</li>
+            <li>다시 배포된 뒤 이 화면에서 이 경고가 사라지면 연결된 거예요</li>
+          </ol>
         </div>
+      ) : (
+        storage.message && <div className="notice notice-info small">{storage.message}</div>
       )}
 
       <section className="section">

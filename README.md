@@ -78,5 +78,7 @@ Grabr 견적 화면처럼 3단계로 나눴어요: ① 물건(링크·가격·�
    - `ADMIN_PASSWORD` — 결과 화면(`/admin`) 비밀번호
    - `DATA_DIR` = `/data`
 3. 서비스를 우클릭(또는 ⌘K) → **Attach Volume** → Mount path `/data`
-   (Volume이 없으면 재배포할 때마다 모은 이메일이 사라져요)
+   (Volume이 없으면 재배포할 때마다 모은 이메일이 사라져요. Volume을 붙이면 Railway가 `RAILWAY_VOLUME_MOUNT_PATH`를 넣어 주고,
+   앱은 `DATA_DIR`이 Volume 밖을 가리켜도 Volume 안에 저장해요.)
+   `/api/health`에서 `"storage":"persistent"`, `/admin` 위쪽에서 "저장 공간 연결됨 ✓"이면 제대로 붙은 거예요.
 4. **Settings → Networking → Generate Domain**으로 주소를 만들어요.
