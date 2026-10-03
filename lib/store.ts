@@ -21,7 +21,7 @@ export interface Req {
   category: Category;
   qty: number;
   unitUSD: number;
-  /** 보상금은 rewardFor(물품 금액)로 자동 계산 (최소 $10, 10%) */
+  /** 보상금: 기본은 rewardFor(물품 금액) (최소 $10, 10%). 구매자가 더 올릴 수 있다 */
   rewardUSD: number;
   packaging: 'box' | 'nobox';
   size: ItemSize;
@@ -281,12 +281,12 @@ function runAuto(s: State): State {
 }
 
 export const actions = {
-  addRequest(r: Omit<Req, 'id' | 'createdAt' | 'status' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat' | 'rewardUSD'> & { dutyUSD?: number }) {
+  addRequest(r: Omit<Req, 'id' | 'createdAt' | 'status' | 'history' | 'dutyUSD' | 'proofs' | 'code' | 'chat' | 'rewardUSD'> & { dutyUSD?: number; rewardUSD?: number }) {
     const s = get();
     const req: Req = {
       dutyUSD: 0,
       ...r,
-      rewardUSD: rewardFor(r.unitUSD * r.qty),
+      rewardUSD: Math.max(rewardFor(r.unitUSD * r.qty), r.rewardUSD ?? 0),
       id: uid('r'),
       createdAt: now(),
       status: 'open',

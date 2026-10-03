@@ -20,9 +20,20 @@ export function rewardFor(itemUSD: number) {
   return itemUSD > 0 ? round(Math.max(FEES.rewardMin, itemUSD * FEES.rewardRate)) : 0;
 }
 
-export function breakdown(r: { unitUSD: number; qty: number; dutyUSD: number }) {
+/** 인기 물건은 공급자가 리셀로 팔 유혹이 크다. 리셀 웃돈의 이만큼을 보상금으로 추천한다. */
+export const RESALE_SHARE = 0.5;
+
+/** 리셀 시세(총액)를 알면 추천 보상금: 기본 보상금과 (리셀 웃돈 × 50%) 중 큰 값, 1달러 단위 올림 */
+export function suggestReward(itemUSD: number, resaleUSD: number) {
+  const base = rewardFor(itemUSD);
+  const gap = resaleUSD - itemUSD;
+  return gap > 0 ? Math.max(base, Math.ceil(gap * RESALE_SHARE)) : base;
+}
+
+/** rewardUSD를 주면 그 금액을 쓰되, 기본 보상금(최소 $10 · 10%)보다 낮아지지는 않는다 */
+export function breakdown(r: { unitUSD: number; qty: number; dutyUSD: number; rewardUSD?: number }) {
   const item = round(r.unitUSD * r.qty);
-  const reward = rewardFor(item);
+  const reward = item > 0 ? Math.max(rewardFor(item), round(r.rewardUSD ?? 0)) : 0;
   const platformFee = item > 0 ? round(Math.max(FEES.platformMin, item * FEES.platformRate)) : 0;
   const duty = round(r.dutyUSD || 0);
   const subtotal = item + reward + platformFee + duty;

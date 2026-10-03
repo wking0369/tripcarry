@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { CATEGORIES, CATEGORY_LIST, COUNTRIES, evaluate, fmtKRW, type Category, type CountryCode } from '@/lib/customs';
-import { EXPRESS_SHIPPING, FEES, anchorPrice, type ItemSize } from '@/lib/fees';
+import { EXPRESS_SHIPPING, FEES, RESALE_SHARE, anchorPrice, rewardFor, suggestReward, type ItemSize } from '@/lib/fees';
 import { actions, breakdown, demoNow, tripBlocked, useP2P, type Req } from '@/lib/store';
 import { CountrySelect, GuardPanel, Loading, Route, StatusChip, usd } from '../ui';
 
@@ -24,10 +24,14 @@ const EMPTY = {
   packaging: 'nobox' as Req['packaging'],
   size: 'small' as ItemSize,
   details: '',
-  from: 'FR' as CountryCode,
+  from: 'JP' as CountryCode,
   to: 'KR' as CountryCode,
   toCity: '',
   waitDays: 30,
+  /** 기본 보상금에 더 얹는 금액 (USD) */
+  extra: 0,
+  /** 같은 물건의 리셀 시세 (1개, USD) — 알면 추천 보상금을 보여 준다 */
+  resale: '',
   note: '',
   agree: false,
   acceptDuty: false,
@@ -62,7 +66,8 @@ export default function RequestsClient() {
   const guard = evaluate({ to: f.to, items: [{ name: f.title, category: f.category, unitUSD, qty: f.qty }] });
   const needsDuty = guard.zone !== 'block' && guard.excessUSD > 0;
   const duty = needsDuty ? guard.estDutyUSD : 0;
-  const b = breakdown({ unitUSD, qty: f.qty, dutyUSD: duty });
+  const baseReward = rewardFor(unitUSD * f.qty);
+  const b = breakdown({ unitUSD, qty: f.qty, dutyUSD: duty, rewardUSD: baseReward + f.extra });
   const deadline = addDays(at, f.waitDays);
   const step1Ok = Boolean(f.title.trim()) && unitUSD > 0 && f.qty >= 1 && guard.zone !== 'block';
   const step2Ok = f.from !== f.to && Boolean(f.toCity.trim());
@@ -90,6 +95,7 @@ export default function RequestsClient() {
       neededBy: ymd(deadline),
       note: f.note.trim(),
       dutyUSD: duty,
+      rewardUSD: b.reward,
     });
     setDone(f.title.trim());
     setF({ ...EMPTY, buyer: f.buyer, from: f.from, to: f.to, toCity: f.toCity });
@@ -271,10 +277,21 @@ export default function RequestsClient() {
               )}
             </section>
 
+            <RewardPicker
+              base={baseReward}
+              extra={f.extra}
+              onExtra={(v) => set('extra', v)}
+              resale={f.resale}
+              onResale={(v) => set('resale', v)}
+              itemUSD={b.item}
+              qty={f.qty}
+              total={b.buyerPays}
+            />
+
             <section className="card co-card">
               <dl className="co-price">
                 <div><dt>물품 가격 <Tip text={`현지 매장 가격 × ${f.qty}개`} /></dt><dd>{usd(b.item)}</dd></div>
-                <div><dt>여행자 보상금 <Tip text={`물품 가격의 ${FEES.rewardRate * 100}%, 최소 $${FEES.rewardMin}`} /></dt><dd>{usd(b.reward)}</dd></div>
+                <div><dt>여행자 보상금 <Tip text={`기본은 물품 가격의 ${FEES.rewardRate * 100}%, 최소 $${FEES.rewardMin}. 올리면 더 빨리 수락돼요`} /></dt><dd>{usd(b.reward)}{f.extra > 0 && <small> (+{usd(f.extra)})</small>}</dd></div>
                 {duty > 0 && <div><dt>예상 세금 <Tip text="면세 한도를 넘는 금액의 예상 관세·부가세. 여행자가 입국 때 신고하고 내요" /></dt><dd>{usd(duty)}</dd></div>}
                 <div><dt>TripCarry 수수료 <Tip text={`물품 가격의 ${FEES.platformRate * 100}%, 최소 $${FEES.platformMin}`} /></dt><dd>{usd(b.platformFee)}</dd></div>
                 <div><dt>결제 수수료 <Tip text={`카드사·결제대행사에 내는 수수료 (${(FEES.paymentRate * 100).toFixed(1)}% + $${FEES.paymentFixed.toFixed(2)})`} /></dt><dd>{usd(b.paymentFee)}</dd></div>
@@ -363,6 +380,72 @@ export default function RequestsClient() {
         )}
       </section>
     </main>
+  );
+}
+
+/** 보상금 올리기: 인기 물건은 공급자가 리셀로 팔 수도 있어서, 수고비를 더 걸면 매칭이 빨라진다 */
+function RewardPicker({
+  base,
+  extra,
+  onExtra,
+  resale,
+  onResale,
+  itemUSD,
+  qty,
+  total,
+}: {
+  base: number;
+  extra: number;
+  onExtra: (v: number) => void;
+  resale: string;
+  onResale: (v: string) => void;
+  itemUSD: number;
+  qty: number;
+  total: number;
+}) {
+  const resaleTotal = Math.max(0, Number(resale) || 0) * qty;
+  const hasResale = resaleTotal > itemUSD;
+  const suggested = hasResale ? suggestReward(itemUSD, resaleTotal) : 0;
+  const reward = base + extra;
+  const options = [0, 5, 10, 20];
+  if (hasResale && suggested > base && !options.includes(suggested - base)) options.push(suggested - base);
+  options.sort((a, b) => a - b);
+
+  return (
+    <section className="card co-card">
+      <div>
+        <h2>보상금(수고비)</h2>
+        <p className="small muted">기본은 물품 가격의 {FEES.rewardRate * 100}%, 최소 ${FEES.rewardMin}예요. 인기 물건은 여행자가 리셀로 팔 수도 있어서, 수고비를 올리면 더 빨리 수락돼요.</p>
+      </div>
+      <div className="pills" role="group" aria-label="보상금">
+        {options.map((o) => (
+          <button key={o} type="button" className="pill" aria-pressed={extra === o} onClick={() => onExtra(o)}>
+            {o === 0 ? `기본 ${usd(base)}` : `+${usd(o)}`}
+            {hasResale && o === suggested - base && o > 0 ? ' · 추천' : ''}
+          </button>
+        ))}
+      </div>
+      <div className="field">
+        <label htmlFor="rq-resale">리셀 시세 (1개, USD) <span className="opt">선택 · 알면 추천 보상금을 알려 드려요</span></label>
+        <input id="rq-resale" className="input" inputMode="decimal" value={resale} onChange={(e) => onResale(e.target.value)} placeholder="예: 리셀 앱에서 본 가격" />
+      </div>
+      {hasResale && (
+        <div className={`notice ${total < resaleTotal ? 'notice-ok' : 'notice-warn'} small`}>
+          {total < resaleTotal ? (
+            <>
+              리셀로 사면 <b>{usd(resaleTotal)}</b> → TripCarry <b>{usd(total)}</b>, <b>{usd(resaleTotal - total)}</b> 아껴요.
+              {reward < suggested ? (
+                <> 리셀 웃돈이 커서 여행자가 리셀을 택할 수 있어요. 수고비를 <b>{usd(suggested)}</b>(웃돈의 {RESALE_SHARE * 100}%)로 올리면 매칭이 빨라져요.</>
+              ) : (
+                <> 수고비가 충분해서 매칭이 빠를 거예요.</>
+              )}
+            </>
+          ) : (
+            <>이 보상금이면 리셀로 사는 게 더 싸요({usd(resaleTotal)}). 수고비를 낮추거나 리셀로 사는 걸 추천해요.</>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
