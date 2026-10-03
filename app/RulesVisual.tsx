@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Lang } from '@/lib/i18n';
+import type { DocLang as Lang } from '@/lib/i18n';
 import { RULES } from '@/lib/rules';
 
 // 운영자 개입 없이 돌아가는 규칙을 그림으로 보여 주는 조각들.

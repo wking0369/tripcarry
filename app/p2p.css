@@ -511,3 +511,52 @@ main > .rv-buy.compact .rv-buy-grid { grid-template-columns: repeat(3, minmax(0,
 .bundle-opts button[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .bundle-opts span { font-size: 13px; color: var(--ink-2); }
 .bundle-opts em { font-style: normal; font-size: 12px; font-weight: 700; color: #16803c; }
+
+/* ── 도쿄 한정품 카드 ── */
+.drops { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.drops-one { grid-template-columns: minmax(0, 560px); justify-content: center; }
+.drops-one .drop-art { display: none; }
+.drops-one .drop { padding: 20px; gap: 10px; }
+.drop { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.drop h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.35; }
+.drop .btn { margin-top: auto; }
+.drop-art { aspect-ratio: 4 / 3; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 52px; background: var(--line-soft); }
+.drop-empty .drop-art { font-size: 40px; color: var(--faint); background: repeating-linear-gradient(45deg, var(--line-soft) 0 10px, var(--surface) 10px 20px); }
+.drop-where { font-size: 13px; color: var(--muted); }
+.drop-badge { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.drop-store { background: var(--accent-soft); color: var(--accent-ink); }
+.drop-park { background: var(--info-soft); color: var(--info); }
+.drop-season { background: #fce4ef; color: #8a1f52; }
+.drop-lottery { background: var(--warn-soft); color: var(--warn); }
+.drop-price { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; font-size: 13px; }
+.drop-price dt { color: var(--muted); }
+.drop-price dd { margin: 0; font-weight: 700; }
+.drop-price .strike { text-decoration: line-through; color: var(--faint); font-weight: 500; }
+.btn-saved { background: var(--accent-soft); border-color: var(--accent-soft); color: var(--accent-ink); }
+.lp-more { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.lp-bar.na .lp-bar-track { display: flex; align-items: center; padding: 0 12px; background: repeating-linear-gradient(45deg, var(--line-soft) 0 8px, var(--surface) 8px 16px); }
+.lp-bar.na .lp-bar-track em { font-style: normal; font-size: 14px; font-weight: 600; color: var(--danger); }
+.lp-supply { display: flex; flex-direction: column; gap: 18px; padding: 24px; align-items: flex-start; }
+.lp-supply .lp-benefits { width: 100%; }
+
+/* ── 언어 선택 ── */
+.lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--surface); }
+.lang-switch button { border: none; background: transparent; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 9px; border-radius: 999px; cursor: pointer; color: var(--muted); }
+.lang-switch button[aria-pressed='true'] { background: var(--ink); color: #fff; }
+
+/* ── 사전 등록: 공급자 질문 ── */
+.wl-supply { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.wl-supply legend { font-size: 13px; font-weight: 700; padding: 0 6px; }
+.wl-supply .pill { font-size: 13px; }
+
+/* ── 관리자: 테스트로 표시한 줄 ── */
+.row-test td { color: var(--faint); text-decoration: line-through; }
+.row-test td:last-child { text-decoration: none; }
+
+@media (max-width: 900px) {
+  .drops { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .drops { grid-template-columns: minmax(0, 1fr); }
+  .lang-switch button { padding: 5px 7px; }
+}

@@ -2,16 +2,22 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { DICT, LANG_COOKIE, type Dict, type Lang } from '@/lib/i18n';
+import { DICT, LANG_COOKIE, docLang, type Dict, type DocLang, type Lang, type RouteKey } from '@/lib/i18n';
 import WaitlistModal from './WaitlistModal';
 
 type Role = 'buyer' | 'traveler' | 'both';
+export interface Preset {
+  route?: RouteKey;
+  item?: string;
+}
 
 interface SiteCtx {
   lang: Lang;
+  /** 약관·규칙·도움말처럼 한국어/영어만 있는 문서용 언어 */
+  dl: DocLang;
   t: Dict;
   setLang: (l: Lang) => void;
-  openWaitlist: (role: Role, cta: string, preset?: { from?: string; to?: string }) => void;
+  openWaitlist: (role: Role, cta: string, preset?: Preset) => void;
   visitor: () => { vid: string; src: string };
 }
 
@@ -56,7 +62,7 @@ function send(body: object) {
   fetch('/api/track', { method: 'POST', headers: { 'content-type': 'application/json' }, body: data, keepalive: true }).catch(() => {});
 }
 
-export function track(type: 'visit' | 'cta' | 'modal_open', extra: { cta?: string } = {}, lang: Lang = 'en') {
+export function track(type: 'visit' | 'cta' | 'modal_open' | 'want', extra: { cta?: string } = {}, lang: Lang = 'ko') {
   if (typeof window === 'undefined') return;
   const { vid, src } = readVisitor();
   send({ type, vid, src, lang, path: window.location.pathname, ref: document.referrer ? new URL(document.referrer).host : '', ...extra });
@@ -65,7 +71,7 @@ export function track(type: 'visit' | 'cta' | 'modal_open', extra: { cta?: strin
 export default function SiteProvider({ lang, children }: { lang: Lang; children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
-  const [modal, setModal] = useState<{ role: Role; from?: string; to?: string } | null>(null);
+  const [modal, setModal] = useState<({ role: Role } & Preset) | null>(null);
   const lastPath = useRef<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +89,7 @@ export default function SiteProvider({ lang, children }: { lang: Lang; children:
   );
 
   const openWaitlist = useCallback(
-    (role: Role, cta: string, preset?: { from?: string; to?: string }) => {
+    (role: Role, cta: string, preset?: Preset) => {
       track('cta', { cta }, lang);
       setModal({ role, ...preset });
     },
@@ -93,9 +99,9 @@ export default function SiteProvider({ lang, children }: { lang: Lang; children:
   const visitor = useCallback(() => readVisitor(), []);
 
   return (
-    <Ctx.Provider value={{ lang, t: DICT[lang], setLang, openWaitlist, visitor }}>
+    <Ctx.Provider value={{ lang, dl: docLang(lang), t: DICT[lang], setLang, openWaitlist, visitor }}>
       {children}
-      {modal && <WaitlistModal initialRole={modal.role} initialFrom={modal.from} initialTo={modal.to} onClose={() => setModal(null)} />}
+      {modal && <WaitlistModal initialRole={modal.role} initialRoute={modal.route} initialItem={modal.item} onClose={() => setModal(null)} />}
     </Ctx.Provider>
   );
 }

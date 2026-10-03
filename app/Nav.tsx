@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LANGS, LANG_LABEL } from '@/lib/i18n';
 import { useSite } from './Site';
 
 // 샘플 데이터로 동작하는 미리보기 화면들
@@ -26,11 +27,14 @@ export default function Nav() {
           <span>TripCarry</span>
         </Link>
         <span style={{ flex: 1 }} />
-        <Link className="tab hide-sm" href="/rules">{t.rules}</Link>
-        <Link className="tab" href="/help">{t.help}</Link>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLang(lang === 'en' ? 'ko' : 'en')}>
-          {t.nav.other}
-        </button>
+        {lang !== 'ja' && <Link className="tab hide-sm" href="/drops">{t.nav.drops}</Link>}
+        <div className="lang-switch" role="group" aria-label="Language">
+          {LANGS.map((l) => (
+            <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
+              {LANG_LABEL[l]}
+            </button>
+          ))}
+        </div>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => openWaitlist('buyer', 'nav')}>
           {t.nav.join}
         </button>
