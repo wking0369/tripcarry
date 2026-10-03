@@ -1,11 +1,10 @@
-import { cookies } from 'next/headers';
-import { LANG_COOKIE, toLang } from '@/lib/i18n';
+import { currentDocLang } from '@/lib/lang';
 import { AutoRules, BeforeYouBuy } from '../RulesVisual';
 
 export const metadata = { title: 'Before you buy' };
 
 export default async function RulesPage() {
-  const lang = toLang((await cookies()).get(LANG_COOKIE)?.value);
+  const lang = await currentDocLang();
   return (
     <main className="page">
       <div className="page-head">

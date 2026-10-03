@@ -1,38 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { AutoRules } from './RulesVisual';
+import { DROPS } from '@/lib/drops';
+import DropCard, { NotListedCard } from './DropCard';
 import { useSite } from './Site';
 
-function flag(code: string) {
-  return String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
-}
-
 const ICONS: Record<string, React.ReactNode> = {
-  globe: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" />
-    </svg>
-  ),
-  box: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9z" />
-      <path d="M3 7.5 12 12l9-4.5M12 12v9" />
-      <path d="M4 4l16 16" className="strike" />
-    </svg>
-  ),
-  tag: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 12V4h8l10 10-8 8L3 12z" />
-      <circle cx="7.5" cy="8.5" r="1.5" />
-    </svg>
-  ),
+  plane: <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />,
+  bag: <path d="M5 8h14l-1 12H6L5 8zM9 8V6a3 3 0 0 1 6 0v2" />,
+  coin: <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 9h4.5a2 2 0 0 1 0 4H9m0-4v8m0-4h5" />,
 };
 
 export default function Landing() {
   const { t, lang, openWaitlist } = useSite();
   const max = Math.max(...t.compare.map((c) => c.value));
+  const reverse = lang === 'ja'; // 일본어 방문자는 서울 → 도쿄 구매자
 
   return (
     <main className="page lp">
@@ -51,61 +33,45 @@ export default function Landing() {
         <p className="lp-perk">🎁 {t.perk}</p>
       </section>
 
-      <section className="lp-benefits">
-        {t.benefits.map((b, i) => (
-          <div key={b.title} className="lp-benefit">
-            <span className="lp-num">{i + 1}</span>
-            <span className="lp-icon">{ICONS[b.icon]}</span>
-            <strong>{b.title}</strong>
-            <span>{b.desc}</span>
+      {reverse ? (
+        <section className="section">
+          <div className="drops drops-one">
+            <NotListedCard />
           </div>
-        ))}
-      </section>
+        </section>
+      ) : (
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <h2 className="lp-h2">{t.dropsTitle}</h2>
+              <p className="small muted">{t.dropsSub}</p>
+            </div>
+            <Link href="/drops" className="lp-more">{t.dropsAll}</Link>
+          </div>
+          <div className="drops">
+            {DROPS.slice(0, 3).map((d) => <DropCard key={d.id} drop={d} />)}
+            <NotListedCard />
+          </div>
+          <p className="tiny muted">{t.dropsSample}</p>
+        </section>
+      )}
 
       <section className="card lp-compare">
         <h2>{t.compareTitle}</h2>
         <div className="lp-bars">
           {t.compare.map((c) => (
-            <div key={c.label} className={`lp-bar${c.best ? ' best' : ''}`}>
+            <div key={c.label} className={`lp-bar${c.best ? ' best' : ''}${c.value ? '' : ' na'}`}>
               <div className="lp-bar-label">
                 <strong>{c.label}</strong>
                 <span>{c.note}</span>
               </div>
               <div className="lp-bar-track">
-                <span style={{ width: `${(c.value / max) * 100}%` }}>{c.shown}</span>
+                {c.value ? <span style={{ width: `${(c.value / max) * 100}%` }}>{c.shown}</span> : <em>✕ {c.shown}</em>}
               </div>
             </div>
           ))}
         </div>
         <p className="tiny muted">{t.compareNote}</p>
-      </section>
-
-      <section className="section">
-        <h2 className="lp-h2">{t.routesTitle}</h2>
-        <div className="grid-2">
-          {t.routes.map((r, i) => (
-            <div key={r.title} className="card lp-route">
-              <div className="lp-flags" aria-hidden="true">
-                <span>{r.from.map(flag).join(' ')}</span>
-                <span className="lp-arrow">→</span>
-                <span>{r.to.map(flag).join(' ')}</span>
-              </div>
-              <h3>{r.title}</h3>
-              <div className="lp-chips">
-                {r.items.map((x) => (
-                  <span key={x} className="chip chip-neutral">{x}</span>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openWaitlist('buyer', i === 0 ? 'route_eu_kr' : 'route_kr_asia', { from: r.from[0], to: r.to.length === 1 ? r.to[0] : '' })}
-              >
-                {r.cta}
-              </button>
-            </div>
-          ))}
-        </div>
       </section>
 
       <section className="section">
@@ -120,15 +86,25 @@ export default function Landing() {
           ))}
         </ol>
         <ul className="lp-trust">
-          {t.trust.map((x) => (
-            <li key={x}>{x}</li>
-          ))}
+          {t.trust.map((x) => <li key={x}>{x}</li>)}
         </ul>
       </section>
 
-      <section className="section">
-        <AutoRules lang={lang} />
-        <Link href="/rules" className="lp-rules-link">{t.rulesCta}</Link>
+      <section className="card lp-supply">
+        <div>
+          <h2 className="lp-h2">{t.supplyTitle}</h2>
+          <p className="muted">{t.supplySub}</p>
+        </div>
+        <div className="lp-benefits">
+          {t.supply.map((b) => (
+            <div key={b.title} className="lp-benefit">
+              <span className="lp-icon"><svg viewBox="0 0 24 24" aria-hidden="true">{ICONS[b.icon]}</svg></span>
+              <strong>{b.title}</strong>
+              <span>{b.desc}</span>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => openWaitlist('traveler', 'supply_section')}>{t.supplyCta}</button>
       </section>
 
       <section className="pitch final-cta">

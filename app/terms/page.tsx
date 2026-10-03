@@ -1,12 +1,11 @@
-import { cookies } from 'next/headers';
-import { LANG_COOKIE, toLang } from '@/lib/i18n';
+import { currentDocLang } from '@/lib/lang';
 import { RULES } from '@/lib/rules';
 
 export const metadata = { title: 'Terms' };
 
 // 출시 전 초안. 정식 서비스 전에 변호사·관세사 검토를 받아야 한다.
 export default async function TermsPage() {
-  const lang = toLang((await cookies()).get(LANG_COOKIE)?.value);
+  const lang = await currentDocLang();
   return lang === 'en' ? <TermsEn /> : <TermsKo />;
 }
 

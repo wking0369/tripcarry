@@ -37,7 +37,7 @@ const FAQ: Record<'ko' | 'en', QA[]> = {
 };
 
 export default function HelpClient() {
-  const { lang } = useSite();
+  const { dl: lang } = useSite();
   const list = FAQ[lang];
   const [thread, setThread] = useState<number[]>([]);
   const end = useRef<HTMLDivElement>(null);

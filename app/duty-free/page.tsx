@@ -1,11 +1,10 @@
-import { cookies } from 'next/headers';
-import { LANG_COOKIE, toLang } from '@/lib/i18n';
+import { currentDocLang } from '@/lib/lang';
 import Calculator from '../Calculator';
 
 export const metadata = { title: 'Duty-free calculator' };
 
 export default async function DutyFreePage() {
-  const lang = toLang((await cookies()).get(LANG_COOKIE)?.value);
+  const lang = await currentDocLang();
   return (
     <main className="page">
       <div className="page-head">

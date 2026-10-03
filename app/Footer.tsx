@@ -13,6 +13,7 @@ export default function Footer() {
       <p>{t.footer1}</p>
       <p>{t.footer2}</p>
       <p className="footer-links">
+        <Link href="/drops">{t.nav.drops}</Link>
         <Link href="/rules">{t.rules}</Link>
         <Link href="/help">{t.help}</Link>
         <Link href="/terms">{t.terms}</Link>

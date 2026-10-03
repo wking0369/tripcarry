@@ -1,5 +1,5 @@
 import 'server-only';
-import { appendFile, mkdir, readFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 // 수요 조사용 기록 저장소. DB 없이 JSON Lines 파일 두 개에 한 줄씩 덧붙인다.
@@ -39,8 +39,9 @@ export const DEPLOY_VERSION = (process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0
 
 const EVENTS = path.join(DATA_DIR, 'events.jsonl');
 const SIGNUPS = path.join(DATA_DIR, 'signups.jsonl');
+const TEST_EMAILS = path.join(DATA_DIR, 'test-emails.json');
 
-export type EventType = 'visit' | 'cta' | 'modal_open' | 'signup';
+export type EventType = 'visit' | 'cta' | 'modal_open' | 'signup' | 'want';
 
 export interface TrackEvent {
   at: string;
@@ -61,6 +62,11 @@ export interface Signup {
   to: string;
   item: string;
   pay: string;
+  /** 공급자 질문 (선택): 거주 형태, 연간 왕복 횟수, 여유 kg, 건당 최소 보상금(USD) */
+  kind?: string;
+  trips?: string;
+  kg?: string;
+  minPay?: string;
   src: string;
   vid: string;
   lang: string;
@@ -99,6 +105,39 @@ export async function readSignups() {
   const byEmail = new Map<string, Signup>();
   for (const r of rows) byEmail.set(r.email, r);
   return [...byEmail.values()].sort((a, b) => (a.at < b.at ? 1 : -1));
+}
+
+/** 관리자가 "테스트"로 표시한 이메일. 통계에서 뺀다. 환경 변수 ADMIN_TEST_EMAILS(쉼표 구분)도 함께 쓴다. */
+export async function readTestEmails(): Promise<Set<string>> {
+  const fromEnv = (process.env.ADMIN_TEST_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+  let saved: string[] = [];
+  try {
+    const v = JSON.parse(await readFile(TEST_EMAILS, 'utf8'));
+    if (Array.isArray(v)) saved = v.filter((e): e is string => typeof e === 'string');
+  } catch {
+    /* 아직 없음 */
+  }
+  return new Set([...fromEnv, ...saved]);
+}
+
+let testWrite = Promise.resolve();
+export function setTestEmail(email: string, on: boolean) {
+  // 동시에 눌러도 파일이 깨지지 않게 한 번에 하나씩 쓴다
+  testWrite = testWrite.then(async () => {
+    let list: string[] = [];
+    try {
+      const v = JSON.parse(await readFile(TEST_EMAILS, 'utf8'));
+      if (Array.isArray(v)) list = v.filter((e): e is string => typeof e === 'string');
+    } catch {
+      /* 아직 없음 */
+    }
+    const next = on ? [...new Set([...list, email])] : list.filter((e) => e !== email);
+    await mkdir(DATA_DIR, { recursive: true });
+    const tmp = TEST_EMAILS + '.tmp';
+    await writeFile(tmp, JSON.stringify(next), 'utf8');
+    await rename(tmp, TEST_EMAILS);
+  });
+  return testWrite;
 }
 
 /** 입력값 정리: 문자열만, 길이 제한, 줄바꿈 제거 */

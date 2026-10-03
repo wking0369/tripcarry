@@ -3,6 +3,10 @@ import { addEvent, addSignup, clean, clientIp, rateLimited } from '@/lib/data';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const ROLES = ['buyer', 'traveler', 'both'] as const;
+const KINDS = ['resident', 'student', 'business', 'traveler'];
+const TRIPS = ['1-2', '3-5', '6-11', '12+'];
+const KGS = ['1', '1-3', '3-5', '5+'];
+const pick = (v: unknown, allowed: string[]) => (typeof v === 'string' && allowed.includes(v) ? v : '');
 
 export async function POST(req: NextRequest) {
   if (rateLimited('w:' + clientIp(req.headers), 10)) {
@@ -28,6 +32,10 @@ export async function POST(req: NextRequest) {
     to: clean(body?.to, 40),
     item: clean(body?.item, 200),
     pay: clean(body?.pay, 20),
+    kind: pick(body?.kind, KINDS),
+    trips: pick(body?.trips, TRIPS),
+    kg: pick(body?.kg, KGS),
+    minPay: clean(body?.minPay, 20),
     src,
     vid,
     lang,
