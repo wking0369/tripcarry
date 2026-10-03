@@ -1,6 +1,7 @@
 import type { Lang } from './i18n';
 
 // 도쿄 → 서울 한정품 예시. 품목 종류를 보여 주기 위한 것이라 가격은 넣지 않는다.
+// 웃돈이 커서 공급자가 리셀로 팔 만한 고가 한정판보다, 리셀하기엔 번거로운 소소한 한정 굿즈 위주로 둔다.
 // 실제 매장 정가와 리셀 시세를 확인한 뒤에만 retail/resale(원)을 채운다. (확인한 날짜는 checked에)
 
 export type DropBadge = 'store' | 'park' | 'season' | 'lottery';
@@ -43,6 +44,22 @@ export const DROPS: Drop[] = [
     where: { ko: '편의점·애니메이트 등 판매처', en: 'Convenience stores, Animate and more', ja: 'コンビニ・アニメイトなど' },
   },
   {
+    id: 'gacha',
+    emoji: '🥚',
+    tone: '#e8f3fb',
+    badge: 'store',
+    name: { ko: '가챠(캡슐토이) 한정 시리즈', en: 'Gacha capsule toy series', ja: 'ガチャ（カプセルトイ）限定シリーズ' },
+    where: { ko: '아키하바라·이케부쿠로 가챠 전문점', en: 'Gacha shops in Akihabara & Ikebukuro', ja: '秋葉原・池袋のガチャ専門店' },
+  },
+  {
+    id: 'sanrio-store',
+    emoji: '🎀',
+    tone: '#fde4ec',
+    badge: 'store',
+    name: { ko: '산리오 매장 한정 굿즈', en: 'Sanrio store exclusives', ja: 'サンリオ店舗限定グッズ' },
+    where: { ko: '산리오 월드 긴자 등 직영점', en: 'Sanrio World Ginza and other stores', ja: 'サンリオワールドギンザなど' },
+  },
+  {
     id: 'nintendo-tokyo',
     emoji: '🎮',
     tone: '#fde2dc',
@@ -57,14 +74,6 @@ export const DROPS: Drop[] = [
     badge: 'store',
     name: { ko: '건담베이스 한정 건프라', en: 'Gundam Base exclusive Gunpla', ja: 'ガンダムベース限定ガンプラ' },
     where: { ko: '건담베이스 도쿄 (오다이바)', en: 'The Gundam Base Tokyo (Odaiba)', ja: 'THE GUNDAM BASE（お台場）' },
-  },
-  {
-    id: 'chrome-hearts',
-    emoji: '💍',
-    tone: '#eeeae0',
-    badge: 'store',
-    name: { ko: '크롬하츠 매장 상품', en: 'Chrome Hearts in-store items', ja: 'クロムハーツの店頭商品' },
-    where: { ko: '크롬하츠 도쿄 매장', en: 'Chrome Hearts Tokyo stores', ja: 'クロムハーツ東京の店舗' },
   },
   {
     id: 'starbucks-jp',
