@@ -23,7 +23,8 @@ export default function Nav() {
     <>
       <header className="topbar">
         <Link href="/" className="brand" style={{ color: 'inherit', textDecoration: 'none' }}>
-          <span className="brand-mark p2p-mark" aria-hidden="true">T</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/mark.png" alt="" width={34} height={26} className="brand-logo" />
           <span>TripCarry</span>
         </Link>
         <span style={{ flex: 1 }} />

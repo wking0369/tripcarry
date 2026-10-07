@@ -26,13 +26,17 @@ const META: Record<Lang, { title: string; desc: string }> = {
   },
 };
 
+// 링크 미리보기 이미지가 절대 주소로 나가도록 실제 사이트 주소를 쓴다 (Railway가 RAILWAY_PUBLIC_DOMAIN을 넣어 준다)
+const SITE_URL = process.env.SITE_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:3000');
+
 export async function generateMetadata(): Promise<Metadata> {
   const { title, desc } = META[await currentLang()];
   return {
+    metadataBase: new URL(SITE_URL),
     title: { default: title, template: '%s · TripCarry' },
     description: desc,
     openGraph: { title, description: desc, type: 'website', siteName: 'TripCarry' },
-    twitter: { card: 'summary', title, description: desc },
+    twitter: { card: 'summary_large_image', title, description: desc },
   };
 }
 
