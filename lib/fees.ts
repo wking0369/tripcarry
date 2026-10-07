@@ -4,14 +4,11 @@ export const FEES = {
   /** 여행자 보상금: 물품 금액의 10%, 최소 $10 */
   rewardRate: 0.1,
   rewardMin: 10,
-  /** TripCarry 플랫폼 수수료(구매자): 물품 금액의 5%, 최소 $2 */
-  platformRate: 0.05,
-  platformMin: 2,
   /** 결제사 수수료(카드·PG): 결제 금액의 2.9% + $0.30 — 결제사에 그대로 나가는 돈 */
   paymentRate: 0.029,
   paymentFixed: 0.3,
-  /** 여행자 수수료: 보상금의 10% (여행자 정산에서 차감) */
-  travelerRate: 0.1,
+  /** TripCarry 몫: 수고비(보상금)의 20%. 구매자에게 따로 받지 않고 여행자 정산에서 뗀다 */
+  travelerRate: 0.2,
 };
 
 const round = (n: number) => Math.round(n * 100) / 100;
@@ -20,12 +17,23 @@ export function rewardFor(itemUSD: number) {
   return itemUSD > 0 ? round(Math.max(FEES.rewardMin, itemUSD * FEES.rewardRate)) : 0;
 }
 
-export function breakdown(r: { unitUSD: number; qty: number; dutyUSD: number }) {
+/** 인기 물건은 공급자가 리셀로 팔 유혹이 크다. 리셀 웃돈의 이만큼을 보상금으로 추천한다. */
+export const RESALE_SHARE = 0.5;
+
+/** 리셀 시세(총액)를 알면 추천 보상금: 기본 보상금과 (리셀 웃돈 × 50%) 중 큰 값, 1달러 단위 올림 */
+export function suggestReward(itemUSD: number, resaleUSD: number) {
+  const base = rewardFor(itemUSD);
+  const gap = resaleUSD - itemUSD;
+  return gap > 0 ? Math.max(base, Math.ceil(gap * RESALE_SHARE)) : base;
+}
+
+/** rewardUSD를 주면 그 금액을 쓰되, 기본 보상금(최소 $10 · 10%)보다 낮아지지는 않는다 */
+export function breakdown(r: { unitUSD: number; qty: number; dutyUSD: number; rewardUSD?: number }) {
   const item = round(r.unitUSD * r.qty);
-  const reward = rewardFor(item);
-  const platformFee = item > 0 ? round(Math.max(FEES.platformMin, item * FEES.platformRate)) : 0;
+  const reward = item > 0 ? Math.max(rewardFor(item), round(r.rewardUSD ?? 0)) : 0;
   const duty = round(r.dutyUSD || 0);
-  const subtotal = item + reward + platformFee + duty;
+  // 구매자는 물품값 + 수고비 (+ 세금) + 결제 수수료만 낸다. TripCarry 수수료는 따로 없다.
+  const subtotal = item + reward + duty;
   const paymentFee = item > 0 ? round(subtotal * FEES.paymentRate + FEES.paymentFixed) : 0;
   const buyerPays = round(subtotal + paymentFee);
   const travelerFee = round(reward * FEES.travelerRate);
@@ -33,16 +41,13 @@ export function breakdown(r: { unitUSD: number; qty: number; dutyUSD: number }) 
   return {
     item,
     reward,
-    platformFee,
     paymentFee,
     duty,
     buyerPays,
     travelerFee,
     travelerGets,
-    /** TripCarry 몫 (결제사 수수료는 제외) */
-    platform: round(platformFee + travelerFee),
-    /** 하위 호환: 예전 화면 이름 */
-    buyerFee: platformFee,
+    /** TripCarry 몫 = 수고비의 20% (결제사 수수료는 제외) */
+    platform: travelerFee,
   };
 }
 

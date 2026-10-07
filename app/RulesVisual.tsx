@@ -46,7 +46,7 @@ const TX = {
     buyTitle: '구매 전 꼭 확인하세요',
     buy: [
       { icon: 'coin' as const, tone: 'warn' as const, title: '관세·세금은 구매자 부담', desc: '면세 한도를 넘으면 예상 세금에 동의해야 다음 단계로 넘어가요.' },
-      { icon: 'ban' as const, tone: 'danger' as const, title: '금지 품목은 자동 차단', desc: '육포·생과일·처방 의약품·모조품·무기류는 요청 자체가 안 돼요.' },
+      { icon: 'ban' as const, tone: 'danger' as const, title: '금지 품목은 자동 차단', desc: '육포·생과일·처방 의약품·모조품·무기류·주류·담배는 요청 자체가 안 돼요.' },
       { icon: 'shield' as const, tone: 'ink' as const, title: 'TripCarry는 중개자예요', desc: '매칭과 에스크로만 제공해요. 통관·세관 신고의 주체는 아니에요.' },
       { icon: 'stop' as const, tone: 'danger' as const, title: '노쇼는 자동 제재', desc: `기한 안에 구매 인증이 없으면 보증금 몰수와 ${RULES.noShowSuspendDays}일 정지.` },
       { icon: 'star' as const, tone: 'warn' as const, title: `평점 ${RULES.minRating.toFixed(1)} 이하는 매칭 제한`, desc: `후기 ${RULES.minReviews}개 이상 쌓인 사용자부터 적용돼요.` },
@@ -72,7 +72,7 @@ const TX = {
     buyTitle: 'Before you buy',
     buy: [
       { icon: 'coin' as const, tone: 'warn' as const, title: 'Duties are paid by the buyer', desc: 'Over the duty-free limit? You must accept the estimated tax to continue.' },
-      { icon: 'ban' as const, tone: 'danger' as const, title: 'Banned items are blocked', desc: 'Jerky, fresh fruit, prescription drugs, counterfeits and weapons can’t be requested.' },
+      { icon: 'ban' as const, tone: 'danger' as const, title: 'Banned items are blocked', desc: 'Jerky, fresh fruit, prescription drugs, counterfeits, weapons, alcohol and tobacco can’t be requested.' },
       { icon: 'shield' as const, tone: 'ink' as const, title: 'TripCarry is an intermediary', desc: 'We provide matching and escrow only — not customs clearance or declarations.' },
       { icon: 'stop' as const, tone: 'danger' as const, title: 'No-shows are penalized automatically', desc: `No purchase proof in time: deposit forfeited and a ${RULES.noShowSuspendDays}-day suspension.` },
       { icon: 'star' as const, tone: 'warn' as const, title: `Rating ${RULES.minRating.toFixed(1)} or below can’t match`, desc: `Applies once a user has ${RULES.minReviews}+ reviews.` },
