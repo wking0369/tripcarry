@@ -162,11 +162,10 @@ function Order({ r, trip, at }: { r: Req; trip?: Trip; at: number }) {
         <div className="breakdown" style={{ marginTop: 8 }}>
           <div><span>물품 {r.qty > 1 ? `(${usd(r.unitUSD)} × ${r.qty})` : ''}</span><span>{usd(b.item)}</span></div>
           <div><span>여행자 보상금</span><span>{usd(b.reward)}</span></div>
-          <div><span>TripCarry 수수료</span><span>{usd(b.platformFee)}</span></div>
           {r.dutyUSD > 0 && <div><span>예상 세금 (구매자 부담 · 선결제)</span><span>{usd(r.dutyUSD)}</span></div>}
           <div><span>결제 수수료 (카드사·PG)</span><span>{usd(b.paymentFee)}</span></div>
           <div className="total"><span>구매자 결제액</span><span>{usd(b.buyerPays)} <span className="muted small">≈ {fmtKRW(b.buyerPays)}</span></span></div>
-          <div className="muted-row"><span>여행자 정산액 (보상금 수수료 {usd(b.travelerFee)} 차감)</span><span>{usd(b.travelerGets)}</span></div>
+          <div className="muted-row"><span>여행자 정산액 (수고비의 20% {usd(b.travelerFee)} = TripCarry 몫 차감)</span><span>{usd(b.travelerGets)}</span></div>
           <div className="muted-row"><span>TripCarry 수익 (결제 수수료 제외)</span><span>{usd(b.platform)}</span></div>
         </div>
       </details>

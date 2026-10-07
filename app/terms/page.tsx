@@ -60,7 +60,7 @@ function TermsKo() {
       <section className="section key">
         <h2>제6조 (금지·제한 품목 및 위반 시 조치)</h2>
         <ol>
-          <li>회사가 지정한 반입 금지·제한 품목(육류·육가공품, 생과일·종자, 의약품, 모조품, 무기류, 마약류 및 각국 법령상 금지 품목 등)은 요청·운반할 수 없으며, 시스템이 요청 단계에서 자동으로 차단합니다.</li>
+          <li>회사가 지정한 반입 금지·제한 품목(육류·육가공품, 생과일·종자, 의약품, 모조품, 무기류, 마약류, <b>주류, 담배</b> 및 각국 법령상 금지 품목 등)은 요청·운반할 수 없으며, 시스템이 요청 단계에서 자동으로 차단합니다.</li>
           <li>이용자가 금지 품목을 무단 운반하거나 서비스를 밀수 목적으로 이용한 경우, 회사는 다음 조치를 할 수 있습니다.
             <ol>
               <li>해당 거래의 에스크로 대금 정산 중단 및 지급 보류</li>
@@ -74,7 +74,7 @@ function TermsKo() {
       <section className="section">
         <h2>제7조 (에스크로 결제 및 정산)</h2>
         <ol>
-          <li>구매자는 매칭 후 물품 대금, 여행자 보상금(물품 대금의 10%, 최소 미화 10달러), TripCarry 수수료, 결제 수수료(카드사·결제대행사 수수료) 및 해당 시 예상 세액을 회사에 결제합니다. 각 금액은 결제 전 주문 요약에 나누어 표시합니다.</li>
+          <li>구매자는 매칭 후 물품 대금, 여행자 보상금(수고비, 물품 대금의 10% 및 최소 미화 10달러 이상에서 구매자가 정함), 결제 수수료(카드사·결제대행사 수수료) 및 해당 시 예상 세액을 회사에 결제합니다. 구매자에게 별도의 TripCarry 수수료는 부과하지 않으며, 회사는 여행자 정산 시 보상금의 20%를 서비스 수수료로 차감합니다. 각 금액은 결제 전 주문 요약에 나누어 표시합니다.</li>
           <li>회사는 수령이 확인된 때(수령 코드 입력, 구매자 확인 또는 제8조의 자동 수령) 여행자에게 대금을 정산합니다.</li>
         </ol>
       </section>
@@ -177,7 +177,7 @@ function TermsEn() {
       <section className="section key">
         <h2>6. Prohibited items and enforcement</h2>
         <ol>
-          <li>Items designated as prohibited or restricted (meat products, fresh produce and seeds, medicines, counterfeits, weapons, drugs, and anything banned by applicable law) may not be requested or carried, and are blocked automatically at the request stage.</li>
+          <li>Items designated as prohibited or restricted (meat products, fresh produce and seeds, medicines, counterfeits, weapons, drugs, <b>alcohol, tobacco</b>, and anything banned by applicable law) may not be requested or carried, and are blocked automatically at the request stage.</li>
           <li>If a user carries prohibited items or uses the Service for smuggling, the Company may:
             <ol>
               <li>suspend settlement of and withhold the escrow funds for that transaction;</li>
@@ -191,7 +191,7 @@ function TermsEn() {
       <section className="section">
         <h2>7. Escrow payment and settlement</h2>
         <ol>
-          <li>After a match, the buyer pays the item price, the traveler reward (10% of the item price, minimum US$10), the TripCarry fee, the payment processing fee (card/PG fees) and any estimated duty. Each amount is shown separately in the order summary before payment.</li>
+          <li>After a match, the buyer pays the item price, the traveler reward (carry fee, set by the buyer at no less than 10% of the item price and US$10), the payment processing fee (card/PG fees) and any estimated duty. Buyers pay no separate TripCarry fee; the Company deducts 20% of the reward as its service fee when paying out the traveler. Each amount is shown separately in the order summary before payment.</li>
           <li>Funds are released to the traveler when receipt is confirmed (hand-off code, buyer confirmation, or automatic confirmation under §8).</li>
         </ol>
       </section>

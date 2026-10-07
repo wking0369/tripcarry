@@ -53,11 +53,11 @@ const ko = {
   notListedSub: '원하는 도쿄 물건을 알려 주세요. 많이 요청된 물건부터 열어요.',
   notListedCta: '직접 요청하기',
   compareTitle: '웃돈 대신, 수고비만',
-  compareNote: '예시예요. 리셀 웃돈은 품목마다 달라요. TripCarry 비용(수고비 10% + 수수료)은 정가 $100 이상 기준이고, 인기 물건은 수고비를 올려 더 빨리 받을 수 있어요.',
+  compareNote: '예시예요. 리셀 웃돈은 품목마다 달라요. TripCarry 비용(수고비 10% + 결제 수수료)은 정가 $100 이상 기준이에요. 구매자 플랫폼 수수료는 없고, 인기 물건은 수고비를 올려 더 빨리 받을 수 있어요.',
   compare: [
     { label: '리셀 앱에서 사면', note: '정가 + 리셀 웃돈', value: 160, shown: '정가 + 웃돈' },
     { label: '구매대행·직구', note: '매장 한정품은 온라인에 없어요', value: 0, shown: '구매 불가' },
-    { label: 'TripCarry', note: '매장 정가 + 수고비 + 수수료', value: 118, shown: '정가 + 약 18%', best: true },
+    { label: 'TripCarry', note: '매장 정가 + 수고비 + 결제 수수료', value: 114, shown: '정가 + 약 14%', best: true },
   ],
   stepsTitle: '이용 방법',
   steps: [
@@ -144,11 +144,11 @@ const en: Dict = {
   notListedSub: 'Tell us what you want from Tokyo. The most requested items open first.',
   notListedCta: 'Request it',
   compareTitle: 'A carry fee, not a resale markup',
-  compareNote: 'Illustrative. Resale markups vary by item. TripCarry cost (10% carry fee + fees) assumes a retail price of $100+; for popular items you can raise the carry fee to get matched faster.',
+  compareNote: 'Illustrative. Resale markups vary by item. TripCarry cost (10% carry fee + card fee) assumes a retail price of $100+, with no buyer platform fee; for popular items you can raise the carry fee to get matched faster.',
   compare: [
     { label: 'Resale apps', note: 'Retail + resale markup', value: 160, shown: 'Retail + markup' },
     { label: 'Proxy / online', note: 'Store exclusives aren’t online', value: 0, shown: 'Not available' },
-    { label: 'TripCarry', note: 'Retail + carry fee + fees', value: 118, shown: 'Retail + ~18%', best: true },
+    { label: 'TripCarry', note: 'Retail + carry fee + card fee', value: 114, shown: 'Retail + ~14%', best: true },
   ],
   stepsTitle: 'How it works',
   steps: [
@@ -233,11 +233,11 @@ const ja: Dict = {
   notListedSub: 'オリーブヤング限定コスメ、K-POPの特典など、ほしい物を教えてください。リクエストの多いものから始めます。',
   notListedCta: 'リクエストする',
   compareTitle: '転売プレミアではなく、謝礼だけ',
-  compareNote: '例です。転売のプレミアは商品によって異なります。TripCarryの費用（謝礼10%＋手数料）は定価$100以上の場合です。人気の商品は謝礼を上げると早く見つかります。',
+  compareNote: '例です。転売のプレミアは商品によって異なります。TripCarryの費用（謝礼10%＋決済手数料）は定価$100以上の場合で、購入者のプラットフォーム手数料はありません。人気の商品は謝礼を上げると早く見つかります。',
   compare: [
     { label: 'フリマ・転売で買う', note: '定価＋プレミア', value: 160, shown: '定価＋プレミア' },
     { label: '代行・通販', note: '店舗限定品はオンラインにありません', value: 0, shown: '購入不可' },
-    { label: 'TripCarry', note: '店頭の定価＋謝礼＋手数料', value: 118, shown: '定価＋約18%', best: true },
+    { label: 'TripCarry', note: '店頭の定価＋謝礼＋決済手数料', value: 114, shown: '定価＋約14%', best: true },
   ],
   stepsTitle: 'ご利用の流れ',
   steps: [

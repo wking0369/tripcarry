@@ -99,8 +99,8 @@ export const CATEGORIES: Record<Category, { label: string; status: RuleStatus; n
   luxury: { label: '명품·고가품', status: 'ok', note: '고가품은 세관 신고 대상일 가능성이 높아요. 영수증과 사진을 반드시 남겨요.' },
   food: { label: '포장 가공식품', status: 'ok', note: '밀봉된 가공식품만 가능해요. 육류 성분이 들어가면 반입 금지예요.' },
   supplement: { label: '건강기능식품', status: 'limit', note: '자가 사용 소량만 허용돼요(한국 6병, 일본 2개월분 등). 의약품은 요청할 수 없어요.' },
-  alcohol: { label: '주류', status: 'limit', note: '나라별 면세 병 수 안에서만 별도 면세예요. 넘으면 과세돼요.' },
-  tobacco: { label: '담배', status: 'limit', note: '1보루(200개비) 안에서만 면세예요. 대리 운반은 권장하지 않아요.' },
+  alcohol: { label: '주류', status: 'block', note: '주류는 다루지 않아요. 여행자 면세는 본인이 마실 술만 해당되고, 돈을 받고 술을 넘기면 면허가 필요한 주류 판매가 될 수 있어요.' },
+  tobacco: { label: '담배', status: 'block', note: '담배는 다루지 않아요. 여행자 면세는 본인 사용분만 해당되고, 담배 판매는 허가가 필요해요.' },
   battery: { label: '보조배터리·리튬 제품', status: 'limit', note: '기내 휴대만 가능하고 160Wh 이하만 돼요(100Wh 초과는 항공사 승인 필요).' },
   meat: { label: '육류·육가공품', status: 'block', note: '육포·소시지·햄·만두 등 육가공품은 대부분 나라에서 반입 금지예요.' },
   fresh: { label: '생과일·채소·씨앗', status: 'block', note: '검역 대상이라 대부분 나라에서 반입 금지예요.' },
@@ -114,6 +114,8 @@ const BLOCK_WORDS: { words: string[]; reason: string; en: string }[] = [
   { words: ['생과일', '씨앗', '묘목', '망고스틴', '두리안'], reason: '검역 대상(생과일·씨앗)으로 보여요', en: 'looks like fresh produce or seeds (quarantine)' },
   { words: ['짝퉁', '레플리카', '이미테이션', 'replica', '가품', '미러급', 'counterfeit', 'fake ', 'knockoff', 'dupe bag'], reason: '모조품은 모든 나라에서 반입 금지예요', en: 'counterfeits are banned everywhere' },
   { words: ['처방', '전문의약품', '의약품', '항생제', '수면제', 'prescription', 'antibiotic', 'opioid'], reason: '의약품은 반입이 제한돼 요청할 수 없어요', en: 'medicines are restricted and can’t be requested' },
+  { words: ['사케', '니혼슈', '일본주', '위스키', '와인', '맥주', '소주', '하이볼', '샴페인', '보드카', '양주', '매실주', 'whisky', 'whiskey', 'wine', 'beer', 'champagne', 'vodka', 'liquor', '酒', 'ワイン', 'ウイスキー'], reason: '주류는 다루지 않아요 (본인용 면세만 가능하고, 술을 넘기면 주류 판매가 될 수 있어요)', en: 'alcohol isn’t allowed (allowances are for your own use, and passing it on can count as selling alcohol)' },
+  { words: ['담배', '전자담배', '궐련', '아이코스', '시가렛', 'cigarette', 'cigar', 'iqos', 'vape', 'tobacco'], reason: '담배는 다루지 않아요', en: 'tobacco isn’t allowed' },
   { words: ['총', '도검', '칼날', '가스총', '전기충격기', '마약', '대마', 'cbd', 'taser', 'pepper spray', 'cannabis', 'marijuana', 'gun '], reason: '무기·마약류는 반입 금지예요', en: 'weapons and drugs are banned' },
 ];
 
@@ -137,8 +139,8 @@ const CATEGORY_EN: Record<Category, { label: string; note: string }> = {
   luxury: { label: 'Luxury goods', note: 'High-value items are likely to need declaring. Keep receipts and photos.' },
   food: { label: 'Packaged snacks & food', note: 'Sealed, processed food only. Anything with meat is banned.' },
   supplement: { label: 'Health supplements', note: 'Personal-use quantities only (e.g. 6 bottles in Korea). Medicines can’t be requested.' },
-  alcohol: { label: 'Alcohol', note: 'Separately exempt only up to each country’s bottle limit.' },
-  tobacco: { label: 'Tobacco', note: 'Exempt up to one carton (200 cigarettes). Carrying for others is discouraged.' },
+  alcohol: { label: 'Alcohol', note: 'We don’t handle alcohol. Traveler allowances cover only your own drinks, and handing over alcohol for money can count as selling alcohol, which needs a licence.' },
+  tobacco: { label: 'Tobacco', note: 'We don’t handle tobacco. Allowances cover only your own use, and selling tobacco needs a licence.' },
   battery: { label: 'Power banks & lithium', note: 'Carry-on only, up to 160Wh (over 100Wh needs airline approval).' },
   meat: { label: 'Meat & meat products', note: 'Jerky, sausage, ham, dumplings etc. are banned in most countries.' },
   fresh: { label: 'Fresh fruit, veg & seeds', note: 'Quarantine items — banned in most countries.' },
@@ -229,23 +231,7 @@ export function evaluate(opts: {
       messages.push({ level: 'block', text: `“${it.name}” — ${word}` });
       continue;
     }
-    if (it.category === 'alcohol') {
-      if (it.qty <= country.alcoholBottles) {
-        messages.push({
-          level: 'info',
-          text: en
-            ? `${it.qty} bottle(s) of alcohol are within ${ct.name}’s separate allowance (${country.alcoholBottles}).`
-            : `주류 ${it.qty}병은 ${ct.name} 별도 면세 범위(${country.alcoholBottles}병) 안이에요.`,
-        });
-        continue;
-      }
-      messages.push({
-        level: 'warn',
-        text: en
-          ? `${ct.name} only exempts ${country.alcoholBottles} bottle(s) of alcohol separately. The rest is taxed.`
-          : `주류는 ${ct.name}에서 ${country.alcoholBottles}병까지만 별도 면세예요. 초과분은 과세돼요.`,
-      });
-    } else if (it.category === 'supplement' && it.qty > 6) {
+    if (it.category === 'supplement' && it.qty > 6) {
       messages.push({
         level: 'warn',
         text: en ? 'Supplements are usually limited to about 6 bottles (personal use). Please reduce the quantity.' : '건강기능식품은 보통 6병(자가 사용량)까지만 허용돼요. 수량을 줄여 주세요.',

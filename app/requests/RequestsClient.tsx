@@ -293,7 +293,7 @@ export default function RequestsClient() {
                 <div><dt>물품 가격 <Tip text={`현지 매장 가격 × ${f.qty}개`} /></dt><dd>{usd(b.item)}</dd></div>
                 <div><dt>여행자 보상금 <Tip text={`기본은 물품 가격의 ${FEES.rewardRate * 100}%, 최소 $${FEES.rewardMin}. 올리면 더 빨리 수락돼요`} /></dt><dd>{usd(b.reward)}{f.extra > 0 && <small> (+{usd(f.extra)})</small>}</dd></div>
                 {duty > 0 && <div><dt>예상 세금 <Tip text="면세 한도를 넘는 금액의 예상 관세·부가세. 여행자가 입국 때 신고하고 내요" /></dt><dd>{usd(duty)}</dd></div>}
-                <div><dt>TripCarry 수수료 <Tip text={`물품 가격의 ${FEES.platformRate * 100}%, 최소 $${FEES.platformMin}`} /></dt><dd>{usd(b.platformFee)}</dd></div>
+                <div><dt>TripCarry 수수료 <Tip text={`구매자에게는 받지 않아요. 여행자 수고비의 ${FEES.travelerRate * 100}%를 여행자 정산에서 떼요`} /></dt><dd>$0.00</dd></div>
                 <div><dt>결제 수수료 <Tip text={`카드사·결제대행사에 내는 수수료 (${(FEES.paymentRate * 100).toFixed(1)}% + $${FEES.paymentFixed.toFixed(2)})`} /></dt><dd>{usd(b.paymentFee)}</dd></div>
                 <div className="total"><dt>예상 총액 <Tip text="여행자가 수락한 뒤에 결제돼요. 그 전에는 청구되지 않아요" /></dt><dd>{usd(b.buyerPays)} <small>≈ {fmtKRW(b.buyerPays)}</small></dd></div>
               </dl>
