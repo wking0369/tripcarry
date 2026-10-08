@@ -560,3 +560,6 @@ main > .rv-buy.compact .rv-buy-grid { grid-template-columns: repeat(3, minmax(0,
   .drops { grid-template-columns: minmax(0, 1fr); }
   .lang-switch button { padding: 5px 7px; }
 }
+
+/* 로고 (가방 마크) */
+.brand-logo { display: block; width: 34px; height: auto; }
