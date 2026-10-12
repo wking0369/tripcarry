@@ -12,6 +12,7 @@ import {
   TEMPLATES,
   captionVariants,
   makeCaption,
+  PLAN_2W,
   makeHashtags,
   newSlide,
   srcFor,
@@ -101,8 +102,8 @@ export default function StudioClient() {
         goal,
         lang,
         slides: starterSlides(goal, lang),
-        caption: makeCaption(goal, lang, 'eu', linkWord, 0),
-        hashtags: makeHashtags(goal, lang, 'eu'),
+        caption: makeCaption(goal, lang, 'tokyo', linkWord, 0),
+        hashtags: makeHashtags(goal, lang, 'tokyo'),
       }),
     });
     setPosts((ps) => [...ps, post]);
@@ -110,6 +111,44 @@ export default function StudioClient() {
     setSelId(post.id);
     setDraft(structuredClone(post));
     setDirty(false);
+  };
+
+  // 플레이북 순서대로 2주치 초안을 한 번에 만든다 (오늘부터)
+  const [planning, setPlanning] = useState(false);
+  const loadPlan = async () => {
+    if (dirty && !confirm('저장하지 않은 변경이 있어요. 버리고 계획을 넣을까요?')) return;
+    setPlanning(true);
+    setMsg('');
+    try {
+      const made: Post[] = [];
+      const today = new Date();
+      for (const item of PLAN_2W) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + item.day);
+        const { post } = await api<{ post: Post }>('/api/studio/posts', {
+          method: 'POST',
+          body: JSON.stringify({
+            date: ymd(d),
+            title: item.title,
+            goal: item.goal,
+            lang: 'ko',
+            slides: starterSlides(item.goal, 'ko'),
+            caption: makeCaption(item.goal, 'ko', 'tokyo', '프로필 링크', item.variant),
+            hashtags: makeHashtags(item.goal, 'ko', 'tokyo'),
+          }),
+        });
+        made.push(post);
+      }
+      setPosts((ps) => [...ps, ...made]);
+      setStats((st) => ({ ...st, ...Object.fromEntries(made.map((p) => [p.id, { visitors: 0, clicks: 0, signups: 0 }])) }));
+      setSelId(made[0].id);
+      setDraft(structuredClone(made[0]));
+      setDirty(false);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '계획을 넣지 못했어요.');
+    } finally {
+      setPlanning(false);
+    }
   };
 
   const save = async () => {
@@ -161,7 +200,8 @@ export default function StudioClient() {
     <div className="studio">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark p2p-mark" aria-hidden="true">T</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/mark.png" alt="" width={34} height={26} className="brand-logo" />
           <span>마케팅 스튜디오</span>
         </div>
         <span style={{ flex: 1 }} />
@@ -177,6 +217,7 @@ export default function StudioClient() {
             <div className="card-flush">
               <div className="row small" style={{ fontWeight: 600, justifyContent: 'space-between' }}>
                 <span>{month.getMonth() + 1}월 게시물 {monthPosts.length}개</span>
+                <button type="button" className="btn btn-sm" onClick={loadPlan} disabled={planning}>{planning ? '만드는 중…' : '2주 계획 넣기'}</button>
                 <span className="muted">전체 방문 {totals.visitors} · 등록 {totals.signups}</span>
               </div>
               {loading ? (
@@ -209,7 +250,11 @@ export default function StudioClient() {
               <div className="card empty" style={{ padding: 48 }}>
                 <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>왼쪽 달력에서 날짜를 누르면 게시물이 만들어져요.</p>
                 <p className="small" style={{ marginTop: 8 }}>카드 이미지 → 캡션·해시태그 → 추적 링크 순서로 채우고, PNG를 내려받아 인스타그램에 올리면 돼요.</p>
-                <button type="button" className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => create(ymd(new Date()))}>오늘 날짜로 새 게시물</button>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+                  <button type="button" className="btn btn-primary" onClick={loadPlan} disabled={planning}>{planning ? '만드는 중…' : '도쿄 전략 2주 계획 넣기 (8개)'}</button>
+                  <button type="button" className="btn" onClick={() => create(ymd(new Date()))}>오늘 날짜로 새 게시물</button>
+                </div>
+                {msg && <p className="small" style={{ marginTop: 8 }}>{msg}</p>}
               </div>
             ) : (
               <Editor
@@ -319,7 +364,7 @@ function Editor({ post, stats, refs, patch, dirty, saving, msg, onSave, onDelete
   onDelete: () => void;
 }) {
   const [cur, setCur] = useState(0);
-  const [route, setRoute] = useState('eu');
+  const [route, setRoute] = useState('tokyo');
   const [variant, setVariant] = useState(0);
   const [copied, setCopied] = useState('');
   const [busy, setBusy] = useState(false);
@@ -648,7 +693,7 @@ function AiPanel({ post, refs, patch }: { post: Post; refs: RefPost[]; patch: (p
         value={idea}
         onChange={(e) => setIdea(e.target.value)}
         maxLength={1000}
-        placeholder="예: 파리 약국 크림을 한국 가격과 비교하는 카드뉴스. 20~30대 여성, 저장하고 싶게. 마지막에 사전 등록 유도"
+        placeholder="예: 포켓몬센터 한정 인형을 리셀가 대신 정가 + 수고비로 받는 카드뉴스. 20대 덕질하는 사람, 저장하고 싶게. 마지막에 사전 등록 유도"
         aria-label="아이디어"
       />
 

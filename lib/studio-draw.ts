@@ -101,14 +101,26 @@ function chip(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, p:
   return { w, h };
 }
 
+// 카드 왼쪽 위 로고. 가방 마크 이미지를 흰 배지 위에 그리고, 아직 안 불러왔으면 글자로 대신한다.
+let logoMark: HTMLImageElement | null = null;
+
 function brand(ctx: CanvasRenderingContext2D, p: Palette, M: number, theme: Theme) {
-  rr(ctx, M, M, 64, 64, 16, theme === 'light' ? C.accent : '#ffffff');
-  ctx.fillStyle = theme === 'light' ? '#ffffff' : C.accent;
-  ctx.font = font(700, 36);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('T', M + 32, M + 34);
+  if (logoMark) {
+    rr(ctx, M, M, 64, 64, 16, '#ffffff');
+    const s = Math.min(48 / logoMark.width, 48 / logoMark.height);
+    const w = logoMark.width * s;
+    const h = logoMark.height * s;
+    ctx.drawImage(logoMark, M + (64 - w) / 2, M + (64 - h) / 2, w, h);
+  } else {
+    rr(ctx, M, M, 64, 64, 16, theme === 'light' ? C.accent : '#ffffff');
+    ctx.fillStyle = theme === 'light' ? '#ffffff' : C.accent;
+    ctx.font = font(700, 36);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('T', M + 32, M + 34);
+  }
   ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
   ctx.fillStyle = p.text;
   ctx.font = font(700, 36);
   ctx.fillText('TripCarry', M + 84, M + 34);
@@ -231,7 +243,7 @@ export function drawSlide(ctx: CanvasRenderingContext2D, slide: Slide, format: P
       const vals = [1, 2, 3].map((i) => Math.max(0, Number(String(f[`v${i}`] ?? '').replace(/[^\d.]/g, '')) || 0));
       const max = Math.max(1, ...vals);
       const unit = f.unit ?? '';
-      const fmt = (n: number) => (unit === '원' ? `${n.toLocaleString('ko-KR')}원` : `${unit}${n.toLocaleString('en-US')}`);
+      const fmt = (n: number) => (unit === '원' || unit === '%' ? `${n.toLocaleString('ko-KR')}${unit}` : `${unit}${n.toLocaleString('en-US')}`);
       const rowH = tall ? 230 : 190;
       for (let i = 0; i < 3; i++) {
         const best = i === 2;
@@ -364,6 +376,16 @@ function drawPhoto(ctx: CanvasRenderingContext2D, slide: Slide, format: PostForm
 }
 
 export async function ensureFonts() {
+  if (!logoMark) {
+    try {
+      const img = new Image();
+      img.src = '/brand/mark.png';
+      await img.decode();
+      logoMark = img;
+    } catch {
+      /* 로고 없이 글자로 그린다 */
+    }
+  }
   try {
     await Promise.all([document.fonts.load(font(400, 40)), document.fonts.load(font(700, 40)), document.fonts.load(font(500, 40))]);
     await document.fonts.ready;
