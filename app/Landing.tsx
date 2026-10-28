@@ -1,122 +1,249 @@
 'use client';
 
-import Link from 'next/link';
-import { DROPS } from '@/lib/drops';
-import DropCard, { NotListedCard } from './DropCard';
-import { useSite } from './Site';
+import { useCallback, useEffect, useState } from 'react';
+import { COPY, SURVEY_URL, WECHAT_ID, type Lang } from '@/lib/landing-copy';
 
-const ICONS: Record<string, React.ReactNode> = {
-  plane: <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />,
-  bag: <path d="M5 8h14l-1 12H6L5 8zM9 8V6a3 3 0 0 1 6 0v2" />,
-  coin: <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 9h4.5a2 2 0 0 1 0 4H9m0-4v8m0-4h5" />,
-};
+function readLang(): Lang {
+  const h = typeof window === 'undefined' ? '' : window.location.hash.slice(1);
+  if (h === 'ko' || h === 'zh') return h;
+  try {
+    const s = localStorage.getItem('lang');
+    if (s === 'ko' || s === 'zh') return s;
+  } catch {}
+  return 'zh';
+}
 
 export default function Landing() {
-  const { t, lang, openWaitlist } = useSite();
-  const max = Math.max(...t.compare.map((c) => c.value));
-  const reverse = lang === 'ja'; // 일본어 방문자는 서울 → 도쿄 구매자
+  const [lang, setLangState] = useState<Lang>('zh');
+  const [copied, setCopied] = useState(false);
+  const t = (k: string) => COPY[lang][k] ?? '';
+  const html = (k: string) => ({ __html: COPY[lang][k] ?? '' });
+
+  useEffect(() => {
+    setLangState(readLang());
+    const onHash = () => {
+      const h = window.location.hash.slice(1);
+      if (h === 'ko' || h === 'zh') setLangState(h);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'ko';
+  }, [lang]);
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l);
+    try { localStorage.setItem('lang', l); } catch {}
+    if (window.location.hash !== '#' + l) history.replaceState(null, '', '#' + l);
+  }, []);
+
+  const copy = () => {
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1600); };
+    const fallback = () => {
+      const el = document.getElementById('wechat-id');
+      if (!el) return;
+      const r = document.createRange(); r.selectNodeContents(el);
+      const s = getSelection(); s?.removeAllRanges(); s?.addRange(r);
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(WECHAT_ID).then(done).catch(fallback);
+    else fallback();
+  };
 
   return (
-    <main className="page lp">
-      <section className="lp-hero">
-        <span className="chip chip-ok">{t.badge}</span>
-        <h1>
-          {t.h1a}
-          <br />
-          <em>{t.h1b}</em>
-        </h1>
-        <p className="lp-sub">{t.sub}</p>
-        <div className="lp-cta">
-          <button type="button" className="btn btn-primary btn-lg" onClick={() => openWaitlist('buyer', 'hero_buyer')}>{t.ctaBuyer}</button>
-          <button type="button" className="btn btn-lg" onClick={() => openWaitlist('traveler', 'hero_traveler')}>{t.ctaTraveler}</button>
+    <div className="lp">
+      <header className="wrap top">
+        <div className="brand"><span className="brand-mark">中→한</span><span>{t('brand')}</span></div>
+        <div className="lang" role="group" aria-label="Language">
+          <button type="button" aria-pressed={lang === 'zh'} onClick={() => setLang('zh')}>中文</button>
+          <button type="button" aria-pressed={lang === 'ko'} onClick={() => setLang('ko')}>한국어</button>
         </div>
-        <p className="lp-perk">🎁 {t.perk}</p>
-      </section>
+      </header>
 
-      {reverse ? (
-        <section className="section">
-          <div className="drops drops-one">
-            <NotListedCard />
+      <main>
+        <div className="wrap hero">
+          <div>
+            <span className="eyebrow">{t('eyebrow')}</span>
+            <h1 dangerouslySetInnerHTML={html('h1')} />
+            <p className="sub">{t('sub')}</p>
+            <div className="cta-row">
+              <a className="btn btn-primary" href="#contact">{t('cta')}</a>
+              <a className="btn btn-ghost" href="#sample">{t('cta2')}</a>
+            </div>
+          </div>
+          <aside className="offer" aria-labelledby="offer-label">
+            <div className="seal" dangerouslySetInnerHTML={html('seal')} />
+            <div className="offer-label" id="offer-label">{t('offerLabel')}</div>
+            <div className="price"><b>₩400,000</b><span>{t('offerUnit')}</span></div>
+            <ul>
+              <li>{t('o1')}</li>
+              <li>{t('o2')}</li>
+              <li>{t('o3')}</li>
+            </ul>
+            <p className="note">{t('offerNote')}</p>
+          </aside>
+        </div>
+
+        <section className="block" id="sample">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="kicker">{t('sampleKicker')}</span>
+              <h2>{t('sampleTitle')}</h2>
+              <p>{t('sampleDesc')}</p>
+            </div>
+            <div className="sample">
+              <figure>
+                <span className="tag">{t('tagXhs')}</span>
+                <div className="shot xhs" role="img" aria-label="小红书原图示例">
+                  <div className="txt zh">
+                    <span className="pill">北京 VLOG</span>
+                    <span className="t1">北京胡同<br />周末慢逛路线</span>
+                    <span className="t2">3 家本地人才知道的小店</span>
+                  </div>
+                </div>
+              </figure>
+              <div className="arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+                <span>中→한</span>
+              </div>
+              <figure>
+                <span className="tag">{t('tagIg')}</span>
+                <div className="shot ig" role="img" aria-label="Instagram 韩语版示例">
+                  <div className="txt ko">
+                    <span className="pill">베이징 브이로그</span>
+                    <span className="t1">베이징 후통<br />주말 산책 코스</span>
+                    <span className="t2">현지인만 아는 가게 3곳</span>
+                  </div>
+                </div>
+              </figure>
+            </div>
+            <div className="review">
+              <div>
+                <small>{t('capLabel')}</small>
+                <p className="ko">주말에 베이징 간다면 여기부터 걸어보세요. 관광객 말고 동네 사람들이 가는 가게만 골랐어요. <span className="hash">#베이징여행 #후통 #중국여행</span></p>
+              </div>
+              <div>
+                <small>{t('backLabel')}</small>
+                <p className="zh">周末去北京的话，先从这里走起。只挑了本地人常去的店，不是游客店。#北京旅行 #胡同 #中国旅行</p>
+              </div>
+            </div>
+            <p className="demo-note">{t('demoNote')}</p>
           </div>
         </section>
-      ) : (
-        <section className="section">
-          <div className="section-head">
-            <div>
-              <h2 className="lp-h2">{t.dropsTitle}</h2>
-              <p className="small muted">{t.dropsSub}</p>
+
+        <section className="block">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="kicker">{t('svcKicker')}</span>
+              <h2>{t('svcTitle')}</h2>
+              <p>{t('svcDesc')}</p>
             </div>
-            <Link href="/drops" className="lp-more">{t.dropsAll}</Link>
+            <ul className="svc">
+              {['s1', 's2', 's3', 's4', 's5'].map((k) => (
+                <li key={k}><h3>{t(k + 't')}</h3><p>{t(k + 'd')}</p></li>
+              ))}
+            </ul>
+            <p className="more">{t('svcMore')}</p>
           </div>
-          <div className="drops">
-            {DROPS.slice(0, 3).map((d) => <DropCard key={d.id} drop={d} />)}
-            <NotListedCard />
-          </div>
-          <p className="tiny muted">{t.dropsSample}</p>
         </section>
-      )}
 
-      <section className="card lp-compare">
-        <h2>{t.compareTitle}</h2>
-        <div className="lp-bars">
-          {t.compare.map((c) => (
-            <div key={c.label} className={`lp-bar${c.best ? ' best' : ''}${c.value ? '' : ' na'}`}>
-              <div className="lp-bar-label">
-                <strong>{c.label}</strong>
-                <span>{c.note}</span>
+        <section className="block">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="kicker">{t('procKicker')}</span>
+              <h2>{t('procTitle')}</h2>
+              <p>{t('procDesc')}</p>
+            </div>
+            <ol className="steps">
+              {['p1', 'p2', 'p3', 'p4', 'p5'].map((k) => (
+                <li key={k}><div><h3>{t(k + 't')}</h3><p>{t(k + 'd')}</p></div></li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section className="block">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="kicker">{t('whyKicker')}</span>
+              <h2>{t('whyTitle')}</h2>
+            </div>
+            <div className="why">
+              <div className="stat">
+                <b>{t('statNum')}</b>
+                <p>{t('statText')}</p>
               </div>
-              <div className="lp-bar-track">
-                {c.value ? <span style={{ width: `${(c.value / max) * 100}%` }}>{c.shown}</span> : <em>✕ {c.shown}</em>}
+              <div className="points">
+                <div><h3>{t('w1t')}</h3><p>{t('w1d')}</p></div>
+                <div><h3>{t('w2t')}</h3><p>{t('w2d')}</p></div>
               </div>
             </div>
-          ))}
-        </div>
-        <p className="tiny muted">{t.compareNote}</p>
-      </section>
+          </div>
+        </section>
 
-      <section className="section">
-        <h2 className="lp-h2">{t.stepsTitle}</h2>
-        <ol className="lp-steps">
-          {t.steps.map((s, i) => (
-            <li key={s.title}>
-              <span className="lp-step-num">{i + 1}</span>
-              <strong>{s.title}</strong>
-              <span>{s.desc}</span>
-            </li>
-          ))}
-        </ol>
-        <ul className="lp-trust">
-          {t.trust.map((x) => <li key={x}>{x}</li>)}
-        </ul>
-      </section>
-
-      <section className="card lp-supply">
-        <div>
-          <h2 className="lp-h2">{t.supplyTitle}</h2>
-          <p className="muted">{t.supplySub}</p>
-        </div>
-        <div className="lp-benefits">
-          {t.supply.map((b) => (
-            <div key={b.title} className="lp-benefit">
-              <span className="lp-icon"><svg viewBox="0 0 24 24" aria-hidden="true">{ICONS[b.icon]}</svg></span>
-              <strong>{b.title}</strong>
-              <span>{b.desc}</span>
+        <section className="block">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="kicker">{t('scopeKicker')}</span>
+              <h2>{t('scopeTitle')}</h2>
             </div>
-          ))}
-        </div>
-        <button type="button" className="btn btn-primary" onClick={() => openWaitlist('traveler', 'supply_section')}>{t.supplyCta}</button>
-      </section>
+            <div className="scope">
+              <div>
+                <h3>{t('oursT')}</h3>
+                <ul>{['ours1', 'ours2', 'ours3'].map((k) => <li key={k}>{t(k)}</li>)}</ul>
+              </div>
+              <div>
+                <h3>{t('yoursT')}</h3>
+                <ul>{['yours1', 'yours2', 'yours3'].map((k) => <li key={k}>{t(k)}</li>)}</ul>
+              </div>
+            </div>
+            <p className="fine">{t('scopeNote')}</p>
+          </div>
+        </section>
 
-      <section className="pitch final-cta">
-        <div>
-          <h2>{t.finalTitle}</h2>
-          <p>{t.finalSub}</p>
-        </div>
-        <div className="lp-cta" style={{ marginTop: 0 }}>
-          <button type="button" className="btn btn-primary" onClick={() => openWaitlist('buyer', 'final_buyer')}>{t.ctaBuyer}</button>
-          <button type="button" className="btn btn-light" onClick={() => openWaitlist('traveler', 'final_traveler')}>{t.ctaTraveler}</button>
-        </div>
-      </section>
-    </main>
+        <section className="block">
+          <div className="wrap">
+            <div className="sec-head">
+              <span className="kicker">{t('pilotKicker')}</span>
+              <h2>{t('pilotTitle')}</h2>
+            </div>
+            <dl className="terms">
+              <div><dt>{t('t1k')}</dt><dd>{t('t1v')}</dd></div>
+              <div><dt>{t('t2k')}</dt><dd className="hl">₩400,000</dd></div>
+              <div><dt>{t('t3k')}</dt><dd>{t('t3v')}</dd></div>
+              <div><dt>{t('t4k')}</dt><dd>{t('t4v')}</dd></div>
+              <div><dt>{t('t5k')}</dt><dd>{t('t5v')}</dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section className="block" id="contact">
+          <div className="wrap">
+            <div className="contact">
+              <div>
+                <h2>{t('ctTitle')}</h2>
+                <p>{t('ctDesc')}</p>
+              </div>
+              <div className="apply">
+                <a className="btn btn-primary" href={SURVEY_URL} target="_blank" rel="noopener noreferrer">{t('survey')}</a>
+                <div className="wechat">
+                  <div className="grow"><small>{t('wxLabel')}</small><strong id="wechat-id">{WECHAT_ID}</strong></div>
+                  <button type="button" className="copy" onClick={copy}>{copied ? t('copied') : t('copy')}</button>
+                </div>
+                <p className="who">{t('who')}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="wrap">© 2026 Park Hyunwook</footer>
+
+      <div className="bar">
+        <div className="bp"><b>₩400,000</b><small>{t('barNote')}</small></div>
+        <a className="btn btn-primary" href="#contact">{t('cta')}</a>
+      </div>
+    </div>
   );
 }
