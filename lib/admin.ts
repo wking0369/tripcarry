@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-// 결과 화면(/admin) 로그인. ADMIN_PASSWORD 하나로만 보호한다.
+// 스튜디오(/studio) 로그인. ADMIN_PASSWORD 하나로만 보호한다.
 export const ADMIN_COOKIE = 'tc_admin';
 
 export const adminConfigured = () => Boolean(process.env.ADMIN_PASSWORD);
