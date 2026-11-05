@@ -1,5 +1,7 @@
 import 'server-only';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import ffmpegStatic from 'ffmpeg-static';
 import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,12 +18,20 @@ export interface Overlay {
   end: number;
 }
 
+// 앱과 함께 설치되는 ffmpeg(ffmpeg-static)를 먼저 쓴다. 그래서 Railway가 어떤 방식으로 빌드해도 동작한다.
+// FFMPEG_PATH 변수로 다른 ffmpeg를 지정할 수 있고, 둘 다 없으면 서버에 설치된 ffmpeg를 찾는다.
+function ffmpegBin() {
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  if (ffmpegStatic && existsSync(ffmpegStatic)) return ffmpegStatic;
+  return 'ffmpeg';
+}
+
 const running = new Set<string>();
 export const isRendering = (id: string) => running.has(id);
 
 function run(args: string[]) {
   return new Promise<void>((resolve, reject) => {
-    const p = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const p = spawn(ffmpegBin(), args, { stdio: ['ignore', 'ignore', 'pipe'] });
     let tail = '';
     p.stderr.on('data', (d: Buffer) => {
       tail = (tail + d.toString()).slice(-1500);
@@ -29,7 +39,7 @@ function run(args: string[]) {
     const timer = setTimeout(() => p.kill('SIGKILL'), 20 * 60_000);
     p.on('error', (e) => {
       clearTimeout(timer);
-      reject((e as NodeJS.ErrnoException).code === 'ENOENT' ? new Error('서버에 ffmpeg가 없어요. Dockerfile로 배포했는지 확인해 주세요.') : e);
+      reject((e as NodeJS.ErrnoException).code === 'ENOENT' ? new Error('서버에서 ffmpeg를 찾지 못했어요. 배포 로그에서 ffmpeg-static 설치가 실패했는지 확인해 주세요.') : e);
     });
     p.on('close', (code) => {
       clearTimeout(timer);
