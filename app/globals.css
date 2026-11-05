@@ -46,7 +46,7 @@ a { color: var(--blue); }
 .site-who { font-weight: 500; }
 .site-hero h1 {
   align-self: end;
-  font-size: clamp(56px, 12.5vw, 196px);
+  font-size: clamp(56px, min(12.5vw, 21vh), 196px);
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.035em;
