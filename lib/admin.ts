@@ -4,12 +4,12 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 // 스튜디오(/studio) 로그인. ADMIN_PASSWORD 하나로만 보호한다.
-export const ADMIN_COOKIE = 'tc_admin';
+export const ADMIN_COOKIE = 'ch_admin';
 
 export const adminConfigured = () => Boolean(process.env.ADMIN_PASSWORD);
 
 function token() {
-  return createHmac('sha256', process.env.ADMIN_PASSWORD || '').update('tripcarry-admin-v1').digest('hex');
+  return createHmac('sha256', process.env.ADMIN_PASSWORD || '').update('creator-hub-admin-v1').digest('hex');
 }
 
 export function checkPassword(input: string) {

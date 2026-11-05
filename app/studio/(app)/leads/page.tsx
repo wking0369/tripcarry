@@ -26,7 +26,7 @@ export default async function Leads() {
           ))}
         </ul>
       ) : <div className="empty"><p>아직 들어온 신청이 없어요.</p></div>}
-      <p className="hint">트립캐리 사전등록 명단은 <a href="/api/admin/export">CSV로 계속 받을 수 있어요</a>.</p>
+      <p className="hint">예전 사전등록 명단은 <a href="/api/admin/export">CSV로 계속 받을 수 있어요</a>.</p>
     </>
   );
 }
