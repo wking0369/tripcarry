@@ -18,7 +18,7 @@ export async function GET() {
   return new NextResponse('﻿' + csv, {
     headers: {
       'content-type': 'text/csv; charset=utf-8',
-      'content-disposition': `attachment; filename="tripcarry-waitlist-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'content-disposition': `attachment; filename="old-waitlist-${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   });
 }

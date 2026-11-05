@@ -1,5 +1,5 @@
 {
-  "name": "tripcarry",
+  "name": "creator-hub",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,7 +12,12 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@fontsource/black-han-sans": "^5.3.0",
+    "@fontsource/do-hyeon": "^5.3.0",
     "@fontsource/ibm-plex-sans-kr": "^5.3.0",
+    "@fontsource/noto-sans-kr": "^5.3.1",
+    "@fontsource/rubik": "^5.3.0",
+    "ffmpeg-static": "^5.3.0",
     "next": "^15.5.26",
     "openai": "^7.25.0",
     "react": "^19.3.0",
